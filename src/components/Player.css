@@ -1,0 +1,129 @@
+.radio-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: Arial, sans-serif;
+  background-color: transparent;
+
+  position: relative;
+  z-index: 10;
+}
+
+.radio-player p {
+  background-color: transparent;
+}
+
+.play-toggle {
+  background-color: #e50877;
+  cursor: pointer;
+  font-size: 32px;
+  height: 100px;
+  width: 100px;
+  width: fit-content;
+  text-transform: uppercase;
+  margin-top: 40px;
+  color: white;
+}
+
+.play-toggle.playing {
+  background: linear-gradient(90deg, #d90681, rgb(225, 105, 58));
+}
+
+.volume-slider {
+  margin-top: 30px;
+  width: 100%;
+  background-color: transparent;
+}
+
+.volume-slider * {
+  background-color: transparent;
+}
+
+.volume-slider p {
+  font-size: 24px;
+}
+
+.player-text {
+  font-size: 32px;
+}
+
+.player-title {
+  font-size: 96px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #d90681, rgb(225, 105, 58));
+  background-clip: text;
+  font-family: 400;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  cursor: default;
+
+  color: transparent; /* Прозрачный цвет текста */
+  -webkit-text-stroke: 1px rgb(28, 27, 12); /* Белая обводка для WebKit */
+  text-stroke: 0.5px white; /* Белая обводка для других браузеров */
+}
+
+.current-song {
+  margin: 0;
+  font-size: 32px;
+}
+
+.volume-label {
+  font-size: 24px;
+}
+
+.styled-slider {
+  -webkit-appearance: none; /* Убирает стандартный стиль для браузеров WebKit */
+  width: 100%;
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #d90681, rgb(225, 105, 58));
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s ease-in-out;
+}
+
+.styled-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Убирает стандартный стиль для браузеров WebKit */
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: #ef3f04;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: background 0.3s ease-in-out;
+}
+
+.styled-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 10px;
+  background: #d90681;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.styled-slider::-webkit-slider-thumb:hover {
+  background: #d90681;
+}
+
+.styled-slider::-moz-range-thumb:hover {
+  background: #d90681;
+}
+
+.audio-container {
+  width: 100%;
+  position: relative;
+}
+
+.audio-viz {
+  position: fixed;
+  bottom: 0px;
+  left: 0px;
+  width: 100vw;
+  height: 100vh;
+  z-index: 5;
+
+  transition: all 0.3s ease-in-out;
+}
