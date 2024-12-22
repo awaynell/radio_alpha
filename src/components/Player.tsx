@@ -31,6 +31,8 @@ const Player = () => {
 
       audioRef.current.load();
 
+      audioRef.current.crossOrigin = "anonymous";
+
       audioRef.current
         .play()
         .then(() => {
