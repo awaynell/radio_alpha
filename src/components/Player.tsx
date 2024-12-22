@@ -14,11 +14,13 @@ const Player = () => {
   const [currentSongTitle, setCurrentSongTitle] = useState("");
   const [audioVizColor, setAudioVizColor] = useState("#282828");
   const [error, setError] = useState<string | null>(null);
+  const [hidden, setHidden] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [AudioViz, init] = useVisualizer(audioRef);
 
-  const isRadioPlaying = error?.includes("no supported source was found");
+  const isRadioPlayingError = error?.includes("no supported source was found");
 
   const togglePlay = useCallback(() => {
     if (!audioRef.current) return;
@@ -51,6 +53,8 @@ const Player = () => {
   }, [isPlaying]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setHidden(false);
+
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
     if (audioRef.current) {
@@ -65,11 +69,19 @@ const Player = () => {
   };
 
   useEffect(() => {
+    document.body.addEventListener("pointermove", () => {
+      setHidden(false);
+    });
+
     getCurrentSongTitle();
     setAudioVizColor(generateGoodHexColor());
 
     const interval = setInterval(() => {
-      if (hasError && isRadioPlaying) {
+      if (isPlaying) {
+        setHidden(true);
+      }
+
+      if (hasError && !isRadioPlayingError) {
         togglePlay();
       }
 
@@ -80,12 +92,21 @@ const Player = () => {
       }
     }, 5000);
 
-    return () => clearInterval(interval);
-  }, [hasError, isRadioPlaying, togglePlay]);
+    return () => {
+      document.body.addEventListener("pointermove", () => {
+        setHidden(false);
+      });
+
+      clearInterval(interval);
+    };
+  }, [hasError, isRadioPlayingError, togglePlay, isPlaying]);
 
   return (
     <>
-      <div className="radio-player">
+      <div
+        className={`radio-player ${hidden ? "opacity-0" : ""}`}
+        onMouseEnter={() => setHidden(false)}
+      >
         <h1 className="player-title">Radio Alpha</h1>
 
         {currentSongTitle && <p className="current-song">{currentSongTitle}</p>}
@@ -102,7 +123,7 @@ const Player = () => {
 
         {hasError && error && typeof error === "string" && (
           <p className="player-text player-error">
-            {!isRadioPlaying ? "Сейчас радио выключено!" : error}
+            {isRadioPlayingError ? "Сейчас радио выключено!" : error}
           </p>
         )}
 
@@ -138,8 +159,8 @@ const Player = () => {
           model={models.polar({
             darkMode: true,
             color: audioVizColor,
-            scale: 1,
-            binSize: 25,
+            scale: 2,
+            binSize: 15,
           })}
         />
       </div>

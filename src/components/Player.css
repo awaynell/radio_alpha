@@ -8,6 +8,8 @@
 
   position: relative;
   z-index: 10;
+
+  transition: all 0.25s ease-in-out;
 }
 
 .radio-player p {
@@ -126,4 +128,8 @@
   z-index: 5;
 
   transition: all 0.3s ease-in-out;
+}
+
+.opacity-0 {
+  opacity: 0;
 }
