@@ -4,7 +4,7 @@ import { fetchCurrentSongTitle } from "../api/fetchPlayerInfo";
 import { STREAM_URL } from "../config/api";
 
 import { useVisualizer, models } from "react-audio-viz";
-import { generateGoodHexColor } from "../utils/common";
+import { encodeString, generateNextColor } from "../utils/common";
 
 const Player = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -12,7 +12,7 @@ const Player = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [currentSongTitle, setCurrentSongTitle] = useState("");
-  const [audioVizColor, setAudioVizColor] = useState("#282828");
+  const [audioVizColor, setAudioVizColor] = useState("#FDAC53");
   const [error, setError] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -64,7 +64,11 @@ const Player = () => {
 
   const getCurrentSongTitle = async () => {
     fetchCurrentSongTitle((songTitle) => {
-      setCurrentSongTitle(songTitle);
+      if (songTitle && songTitle.length !== 0) {
+        const encodedSongTitle = encodeString(songTitle);
+
+        setCurrentSongTitle(encodedSongTitle);
+      }
     });
   };
 
@@ -74,7 +78,6 @@ const Player = () => {
     });
 
     getCurrentSongTitle();
-    setAudioVizColor(generateGoodHexColor());
 
     const interval = setInterval(() => {
       if (isPlaying) {
@@ -87,8 +90,6 @@ const Player = () => {
 
       if (!hasError) {
         getCurrentSongTitle();
-
-        setAudioVizColor(generateGoodHexColor());
       }
     }, 5000);
 
@@ -100,6 +101,19 @@ const Player = () => {
       clearInterval(interval);
     };
   }, [hasError, isRadioPlayingError, togglePlay, isPlaying]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isPlaying) {
+        setAudioVizColor((prevColor) => {
+          const nextColor = generateNextColor(prevColor);
+          return nextColor;
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [audioVizColor, isPlaying]);
 
   return (
     <>
@@ -145,7 +159,7 @@ const Player = () => {
           <audio
             ref={audioRef}
             src={STREAM_URL}
-            preload="nonex"
+            preload="none"
             onPlay={init}
             onError={() => {
               setHasError(true);
