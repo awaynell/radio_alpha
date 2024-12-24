@@ -8,11 +8,12 @@ import { encodeString, generateNextColor } from "../utils/common";
 
 const Player = () => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.5);
+  const [volume, setVolume] = useState(0.25);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [currentSongTitle, setCurrentSongTitle] = useState("");
-  const [audioVizColor, setAudioVizColor] = useState("#FDAC53");
+
+  const [audioVizColor, setAudioVizColor] = useState("#FFFFFF");
   const [error, setError] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
