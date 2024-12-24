@@ -111,7 +111,9 @@ const Player = () => {
           return nextColor;
         });
       }
-    }, 1000);
+
+      setIsPlaying(true);
+    }, 2500);
 
     return () => clearInterval(interval);
   }, [audioVizColor, isPlaying]);
