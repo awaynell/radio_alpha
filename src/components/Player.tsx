@@ -111,8 +111,6 @@ const Player = () => {
           return nextColor;
         });
       }
-
-      setIsPlaying(true);
     }, 2500);
 
     return () => clearInterval(interval);
