@@ -12,7 +12,6 @@ export function generateNextColor(baseColor: string): string {
   // Генерируем новый цвет
   const nextColor = hslToHex(currentHsl.h, currentHsl.s, currentHsl.l);
 
-  console.log(`Updated HSL: ${JSON.stringify(currentHsl)}, HEX: ${nextColor}`);
   return nextColor;
 }
 
