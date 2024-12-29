@@ -13,7 +13,6 @@ const Player = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.25);
   const [isLoading, setIsLoading] = useState(false);
-  console.log("isLoading", isLoading);
   const [hasError, setHasError] = useState(false);
   const [currentSongTitle, setCurrentSongTitle] = useState("");
   const [listenersCount, setListenersCount] = useState(0);
@@ -78,8 +77,6 @@ const Player = () => {
     const listenersCount = radioStatus?.icestats?.source?.listeners;
 
     setListenersCount(listenersCount || 0);
-
-    console.log(radioStatus?.icestats?.source);
 
     setIsLive(radioStatus?.icestats?.source !== undefined);
 
