@@ -3,7 +3,7 @@ import { IRadioStatus } from "../types/IRadioStatus";
 
 export const fetchStatusJson = async (): Promise<IRadioStatus | null> => {
   try {
-    const response = await fetch(`${API_URL}/status-json.xsl`);
+    const response = await fetch(`${API_URL}/status`);
     const data = await response.json();
     return data;
   } catch (error) {
