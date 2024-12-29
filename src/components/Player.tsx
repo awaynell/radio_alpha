@@ -1,17 +1,23 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import "./Player.css";
-import { fetchCurrentSongTitle } from "../api/fetchPlayerInfo";
-import { STREAM_URL } from "../config/api";
-
 import { useVisualizer, models } from "react-audio-viz";
+import { Vortex } from "react-loader-spinner";
+import clsx from "clsx";
+
+import { fetchStatusJson } from "../api/fetchPlayerInfo";
+import { STREAM_URL } from "../config/api";
 import { encodeString, generateNextColor } from "../utils/common";
+
+import "./Player.css";
 
 const Player = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.25);
   const [isLoading, setIsLoading] = useState(false);
+  console.log("isLoading", isLoading);
   const [hasError, setHasError] = useState(false);
   const [currentSongTitle, setCurrentSongTitle] = useState("");
+  const [listenersCount, setListenersCount] = useState(0);
+  const [isLive, setIsLive] = useState(false);
 
   const [audioVizColor, setAudioVizColor] = useState("#FFFFFF");
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +34,7 @@ const Player = () => {
 
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
       setIsLoading(true);
       setHasError(false);
@@ -42,6 +49,7 @@ const Player = () => {
           setIsLoading(false);
           setHasError(false);
           setError(null);
+          setIsPlaying(true);
         })
         .catch((err) => {
           setIsLoading(false);
@@ -50,7 +58,6 @@ const Player = () => {
           setIsPlaying(false);
         });
     }
-    setIsPlaying(!isPlaying);
   }, [isPlaying]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,14 +70,24 @@ const Player = () => {
     }
   };
 
-  const getCurrentSongTitle = async () => {
-    fetchCurrentSongTitle((songTitle) => {
-      if (songTitle && songTitle.length !== 0) {
-        const encodedSongTitle = encodeString(songTitle);
+  const getRadioStatus = async () => {
+    const radioStatus = await fetchStatusJson();
 
-        setCurrentSongTitle(encodedSongTitle);
-      }
-    });
+    const songTitle = radioStatus?.icestats?.source?.title;
+
+    const listenersCount = radioStatus?.icestats?.source?.listeners;
+
+    setListenersCount(listenersCount || 0);
+
+    console.log(radioStatus?.icestats?.source);
+
+    setIsLive(radioStatus?.icestats?.source !== undefined);
+
+    if (songTitle && songTitle.length !== 0) {
+      const encodedSongTitle = encodeString(songTitle);
+
+      setCurrentSongTitle(encodedSongTitle);
+    }
   };
 
   useEffect(() => {
@@ -78,7 +95,7 @@ const Player = () => {
       setHidden(false);
     });
 
-    getCurrentSongTitle();
+    getRadioStatus();
 
     const interval = setInterval(() => {
       if (isPlaying) {
@@ -90,7 +107,7 @@ const Player = () => {
       }
 
       if (!hasError) {
-        getCurrentSongTitle();
+        getRadioStatus();
       }
     }, 5000);
 
@@ -116,30 +133,66 @@ const Player = () => {
     return () => clearInterval(interval);
   }, [audioVizColor, isPlaying]);
 
+  useEffect(() => {
+    if (!isLive) {
+      setIsPlaying(false);
+    }
+  }, [isLive]);
+
   return (
-    <>
-      <div
-        className={`radio-player ${hidden ? "opacity-0" : ""}`}
-        onMouseEnter={() => setHidden(false)}
-      >
-        <h1 className="player-title">Radio Alpha</h1>
-
-        {currentSongTitle && <p className="current-song">{currentSongTitle}</p>}
-
-        <button
-          className={`play-toggle ${isPlaying ? "playing" : ""}`}
-          onClick={togglePlay}
-          disabled={isLoading}
+    <div
+      className={"radio-player-container"}
+      onMouseEnter={() => setHidden(false)}
+    >
+      <div className={clsx("radio-player", { "opacity-0": hidden })}>
+        <h1
+          className={clsx("player-title", {
+            gradient: isLive,
+          })}
         >
-          {isPlaying ? "Выключить" : "Включить"}
-        </button>
+          Radio Alpha
+        </h1>
 
-        {isLoading && <p className="player-text player-status">Загрузка...</p>}
+        {currentSongTitle && isLive && (
+          <p className="current-song">{currentSongTitle}</p>
+        )}
+
+        <div className="radio-player-controls">
+          <button
+            className={clsx("play-toggle", {
+              playing: isPlaying || isLive,
+              hidden: isLoading,
+            })}
+            onClick={togglePlay}
+            disabled={isLoading || !isLive}
+          >
+            {!isLive
+              ? "Радио сейчас выключено"
+              : isPlaying
+              ? "Выключить"
+              : "Включить"}
+          </button>
+
+          <Vortex
+            visible={true}
+            height="90"
+            width="90"
+            wrapperClass={clsx("loader", {
+              hidden: !isLoading,
+            })}
+            colors={[
+              "#d90681",
+              "#E1693A",
+              "#E03A60",
+              "#E0A13A",
+              "#E04C3A",
+              "#d90681",
+            ]}
+          />
+        </div>
 
         {hasError && error && typeof error === "string" && (
-          <p className="player-text player-error">
-            {isRadioPlayingError ? "Сейчас радио выключено!" : error}
-          </p>
+          <p className="player-text player-error">{error}</p>
         )}
 
         <div className="volume-slider">
@@ -151,7 +204,9 @@ const Player = () => {
             step="0.01"
             value={volume}
             onChange={handleVolumeChange}
-            className="styled-slider"
+            className={clsx("styled-slider", {
+              gradient: isLive,
+            })}
           />
 
           <p className="volume-label">{`${Math.round(volume * 100)}%`}</p>
@@ -167,6 +222,15 @@ const Player = () => {
             }}
           />
         </div>
+
+        <div
+          className={clsx("listeners-container", {
+            hidden: !listenersCount || !isPlaying,
+          })}
+        >
+          <p>Слушателей:</p>
+          <p className="listeners">{listenersCount}</p>
+        </div>
       </div>
 
       <div className="audio-viz">
@@ -179,7 +243,7 @@ const Player = () => {
           })}
         />
       </div>
-    </>
+    </div>
   );
 };
 

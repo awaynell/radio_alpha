@@ -1,13 +1,13 @@
 import { API_URL } from "../config/api";
+import { IRadioStatus } from "../types/IRadioStatus";
 
-export const fetchCurrentSongTitle = async (
-  onFullfilled: (songTitle: string) => void
-) => {
+export const fetchStatusJson = async (): Promise<IRadioStatus | null> => {
   try {
     const response = await fetch(`${API_URL}/status-json.xsl`);
     const data = await response.json();
-    onFullfilled(data?.icestats?.source?.title);
+    return data;
   } catch (error) {
-    console.error("Error fetching song title:", error);
+    console.error("Error fetching status JSON:", error);
+    return null;
   }
 };
