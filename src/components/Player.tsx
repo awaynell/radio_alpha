@@ -1,11 +1,21 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useVisualizer, models } from "react-audio-viz";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  MutableRefObject,
+} from "react";
 import { Vortex } from "react-loader-spinner";
 import clsx from "clsx";
 
-import { fetchStatusJson } from "../api/fetchPlayerInfo";
-import { STREAM_URL } from "../config/api";
-import { encodeString, generateNextColor } from "../utils/common";
+import { STREAM_URL } from "@config/api";
+import { polar } from "@config/visualizerModels/polar";
+
+import { fetchStatusJson } from "@api/fetchPlayerInfo";
+
+import { encodeString, generateNextColor } from "@utils/common";
+
+import { useVisualizer } from "@hooks/useVisualizer";
 
 import "./Player.css";
 
@@ -24,7 +34,9 @@ const Player = () => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const [AudioViz, init] = useVisualizer(audioRef);
+  const [AudioVisualizer, init] = useVisualizer(
+    audioRef as MutableRefObject<HTMLAudioElement>
+  );
 
   const isRadioPlayingError = error?.includes("no supported source was found");
 
@@ -125,7 +137,7 @@ const Player = () => {
           return nextColor;
         });
       }
-    }, 2500);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [audioVizColor, isPlaying]);
@@ -231,12 +243,12 @@ const Player = () => {
       </div>
 
       <div className="audio-viz">
-        <AudioViz
-          model={models.polar({
+        <AudioVisualizer
+          model={polar({
             darkMode: true,
-            color: audioVizColor,
             scale: 2,
             binSize: 15,
+            color: audioVizColor,
           })}
         />
       </div>
