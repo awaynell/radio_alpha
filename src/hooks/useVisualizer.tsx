@@ -4,7 +4,9 @@ import { AudioVisualizer } from "@components/AudioVisualizer";
 type MediaElement = HTMLAudioElement | HTMLVideoElement;
 type MediaElementRef = React.MutableRefObject<MediaElement>;
 
-export const useVisualizer = (mediaElementRef: MediaElementRef) => {
+export const useVisualizer = (
+  mediaElementRef: MediaElementRef
+): [typeof AudioVisualizer, () => void] => {
   const [hasInitialized, setHasInitialized] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioSrcRef = useRef<MediaElementAudioSourceNode | null>(null);

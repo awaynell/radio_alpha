@@ -1,6 +1,17 @@
-import { useCallback, useRef } from "react";
+import { MutableRefObject, useCallback, useRef } from "react";
 
-export const AudioVisualizer = (props) => {
+export const AudioVisualizer = (props: {
+  model: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    frequencyData: Uint8Array
+  ) => { r: number; g: number; b: number };
+  audioSrcRef?: MutableRefObject<MediaElementAudioSourceNode | null>;
+  analyserRef?: React.RefObject<AnalyserNode>;
+  canvasRef?: React.RefObject<HTMLCanvasElement>;
+}) => {
   const { model, audioSrcRef, analyserRef, canvasRef } = props;
 
   // Сохраняем последнюю ссылку на анимацию
@@ -31,7 +42,7 @@ export const AudioVisualizer = (props) => {
   );
 
   // Рендеринг визуализатора с использованием анимации
-  if (audioSrcRef.current && analyserRef.current && canvasRef.current) {
+  if (audioSrcRef?.current && analyserRef?.current && canvasRef?.current) {
     const { current: analyser } = analyserRef;
     const frequencyData = new Uint8Array(analyser.frequencyBinCount / 2);
 
@@ -58,7 +69,7 @@ export const AudioVisualizer = (props) => {
   }
 
   const refitCanvas = useCallback(() => {
-    if (canvasRef.current) {
+    if (canvasRef?.current) {
       const { current: canvas } = canvasRef;
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
@@ -66,7 +77,7 @@ export const AudioVisualizer = (props) => {
   }, [canvasRef]);
 
   refitCanvas();
-  if (canvasRef.current) {
+  if (canvasRef?.current) {
     const resizeObserver = new ResizeObserver(refitCanvas);
     resizeObserver.observe(canvasRef.current);
   }
