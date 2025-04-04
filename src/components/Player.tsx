@@ -18,6 +18,7 @@ import { encodeString, generateNextColor } from "@utils/common";
 import { useVisualizer } from "@hooks/useVisualizer";
 
 import "./Player.css";
+import Switch from "./Switch";
 
 const Player = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -31,6 +32,7 @@ const Player = () => {
   const [audioVizColor, setAudioVizColor] = useState("#FFFFFF");
   const [error, setError] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
+  const [isAudioVizVisible, setIsAudioVizVisible] = useState(true);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -99,6 +101,10 @@ const Player = () => {
     }
   };
 
+  const toggleAudioViz = (e) => {
+    setIsAudioVizVisible(e.target.checked);
+  };
+
   useEffect(() => {
     document.body.addEventListener("pointermove", () => {
       setHidden(false);
@@ -154,6 +160,9 @@ const Player = () => {
       onMouseEnter={() => setHidden(false)}
     >
       <div className={clsx("radio-player", { "opacity-0": hidden })}>
+        <div>
+          <Switch onChange={toggleAudioViz} />
+        </div>
         <h1
           className={clsx("player-title", {
             gradient: isLive,
@@ -242,16 +251,18 @@ const Player = () => {
         </div>
       </div>
 
-      <div className="audio-viz">
-        <AudioVisualizer
-          model={polar({
-            darkMode: true,
-            scale: 2,
-            binSize: 15,
-            color: audioVizColor,
-          })}
-        />
-      </div>
+      {isAudioVizVisible && (
+        <div className="audio-viz">
+          <AudioVisualizer
+            model={polar({
+              darkMode: true,
+              scale: 2,
+              binSize: 15,
+              color: audioVizColor,
+            })}
+          />
+        </div>
+      )}
     </div>
   );
 };
