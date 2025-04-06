@@ -1,81 +1,72 @@
 import { parseCSSColor } from "@utils/parseCSSColor";
+import { DEFAULT_OPTIONS, interpolateColor } from "./DEFAULT";
 
 export type PolarVisualizationModelOptions = {
   darkMode?: boolean;
-  reversed?: boolean;
   scale?: number;
-  binSize?: number;
-  color?: string;
-};
-
-export const DEFAULT_OPTIONS = {
-  darkMode: true,
-  reversed: false,
-  scale: 2,
-  binSize: 50,
-  color: "#009CE0",
+  colors?: string[];
+  speed?: number;
 };
 
 export const polar = (options: PolarVisualizationModelOptions = {}) => {
-  const { reversed, scale, darkMode, color, binSize } = {
+  const {
+    colors = [
+      "#FF6B6B", // Красный
+      "#FF9F1C", // Оранжевый
+      "#FFD60A", // Жёлтый
+      "#2ECC71", // Зелёный
+      "#4ECDC4", // Бирюзовый
+      "#45B7D1", // Голубой
+      "#3498DB", // Синий
+      "#9B59B6", // Фиолетовый
+      "#D4A5A5", // Розовый
+    ],
+  } = {
     ...DEFAULT_OPTIONS,
     ...options,
   };
 
-  const parsedColor = parseCSSColor(color) || { r: 0, g: 0, b: 0 };
-  const colorCache = new Map<string, { r: number; g: number; b: number }>();
+  const parsedColors = colors.map(
+    (c) => parseCSSColor(c) || { r: 0, g: 0, b: 0 }
+  );
 
-  const colorMakerOptions: {
-    [key: string]: (c: number, f: number) => number;
-  } = {
-    dark: (c, f) => c * (f / 255),
-    // TODO: Performance tank due to so many operations here
-    light: (c, f) => c + (255 - c) * (1 - f / 255),
+  const getGradientColor = (frequencyFactor: number) => {
+    const colorCount = parsedColors.length;
+    if (colorCount === 1) return parsedColors[0];
+
+    // Распределяем частоты на всю палитру
+    const offset = frequencyFactor * (colorCount - 1); // От 0 до последнего цвета
+    const index1 = Math.floor(offset) % colorCount;
+    const index2 = (index1 + 1) % colorCount;
+    const factor = offset - Math.floor(offset);
+
+    return interpolateColor(parsedColors[index1], parsedColors[index2], factor);
   };
 
-  const colorMaker = colorMakerOptions[darkMode ? "dark" : "light"];
+  return (frequencyData: Uint8Array) => {
+    // Делим частоты на диапазоны: низкие, средние, высокие
+    const lowRange =
+      frequencyData
+        .slice(0, frequencyData.length / 3)
+        .reduce((a, b) => a + b, 0) /
+      (frequencyData.length / 3) /
+      255;
+    const midRange =
+      frequencyData
+        .slice(frequencyData.length / 3, (2 * frequencyData.length) / 3)
+        .reduce((a, b) => a + b, 0) /
+      (frequencyData.length / 3) /
+      255;
+    const highRange =
+      frequencyData
+        .slice((2 * frequencyData.length) / 3)
+        .reduce((a, b) => a + b, 0) /
+      (frequencyData.length / 3) /
+      255;
 
-  const frequencyIndexSelectorOptions: {
-    [key: string]: (r: number, R: number, L: number) => number;
-  } = {
-    normal: (r, R, L) => Math.min(Math.floor((r / R) * L), L),
-    reversed: (r, R, L) => L - 1 - Math.min(Math.floor((r / R) * L), L),
-  };
+    // Смешиваем влияние диапазонов
+    const frequencyFactor = lowRange * 0.3 + midRange * 0.4 + highRange * 0.3; // Взвешенная сумма
 
-  const frequencyIndexSelector =
-    frequencyIndexSelectorOptions[reversed ? "reversed" : "normal"];
-
-  return (
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    frequencyData: Uint8Array
-  ) => {
-    const centerX = Math.floor(width / 2);
-    const centerY = Math.floor(height / 2);
-
-    // The viz will be a circle with radius equaling the distance from the center to any of the four cocrners
-    // This will ensure that the visible area is fully contained within the circle
-    const R = Math.sqrt(centerX ** 2 + centerY ** 2) * scale;
-    const radius = Math.sqrt((centerX - x) ** 2 + (centerY - y) ** 2);
-
-    const binnedRadius = Math.floor(radius / binSize) * binSize;
-
-    const frequencyMagnitudeForThisPixel =
-      frequencyData[
-        frequencyIndexSelector(binnedRadius, R, frequencyData.length)
-      ];
-
-    const cacheKey = `${frequencyMagnitudeForThisPixel}`;
-    if (!colorCache.has(cacheKey)) {
-      colorCache.set(cacheKey, {
-        r: colorMaker(parsedColor.r, frequencyMagnitudeForThisPixel),
-        g: colorMaker(parsedColor.g, frequencyMagnitudeForThisPixel),
-        b: colorMaker(parsedColor.b, frequencyMagnitudeForThisPixel),
-      });
-    }
-
-    return colorCache.get(cacheKey)!;
+    return getGradientColor(frequencyFactor);
   };
 };

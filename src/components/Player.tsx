@@ -13,12 +13,17 @@ import { polar } from "@config/visualizerModels/polar";
 
 import { fetchStatusJson } from "@api/fetchPlayerInfo";
 
-import { encodeString, generateNextColor } from "@utils/common";
+import { encodeString } from "@utils/common";
 
 import { useVisualizer } from "@hooks/useVisualizer";
 
 import "./Player.css";
 import Switch from "./Switch";
+import {
+  energyBars,
+  spectrumWaves,
+  pulseCircles,
+} from "@config/visualizerModels/visualizerModels";
 
 const Player = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -27,9 +32,17 @@ const Player = () => {
   const [hasError, setHasError] = useState(false);
   const [currentSongTitle, setCurrentSongTitle] = useState("");
   const [listenersCount, setListenersCount] = useState(0);
+  const [maxListenersCount, setMaxListenersCount] = useState(0);
   const [isLive, setIsLive] = useState(false);
+  const [currentAnimModel, setCurrentAnimModel] = useState<
+    | "polar"
+    | "dominantFrequency"
+    | "energyBars"
+    | "spectrumWaves"
+    | "pulseCircles"
+  >("polar");
 
-  const [audioVizColor, setAudioVizColor] = useState("#FFFFFF");
+  // const [audioVizColor, setAudioVizColor] = useState("#FFFFFF");
   const [error, setError] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
   const [isAudioVizVisible, setIsAudioVizVisible] = useState(true);
@@ -90,7 +103,11 @@ const Player = () => {
 
     const listenersCount = radioStatus?.icestats?.source?.listeners;
 
+    const maxListenersCount = radioStatus?.icestats?.source?.listener_peak;
+
     setListenersCount(listenersCount || 0);
+
+    setMaxListenersCount(maxListenersCount || 0);
 
     setIsLive(radioStatus?.icestats?.source !== undefined);
 
@@ -135,18 +152,18 @@ const Player = () => {
     };
   }, [hasError, isRadioPlayingError, togglePlay, isPlaying]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (isPlaying) {
-        setAudioVizColor((prevColor) => {
-          const nextColor = generateNextColor(prevColor);
-          return nextColor;
-        });
-      }
-    }, 5000);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     if (isPlaying) {
+  //       setAudioVizColor((prevColor) => {
+  //         const nextColor = generateNextColor(prevColor);
+  //         return nextColor;
+  //       });
+  //     }
+  //   }, 5000);
 
-    return () => clearInterval(interval);
-  }, [audioVizColor, isPlaying]);
+  //   return () => clearInterval(interval);
+  // }, [audioVizColor, isPlaying]);
 
   useEffect(() => {
     if (!isLive) {
@@ -163,6 +180,28 @@ const Player = () => {
         <div>
           <Switch onChange={toggleAudioViz} />
         </div>
+
+        {isAudioVizVisible && (
+          <select
+            onChange={(e) =>
+              setCurrentAnimModel(
+                e.target.value as
+                  | "polar"
+                  | "energyBars"
+                  | "spectrumWaves"
+                  | "pulseCircles"
+              )
+            }
+            value={currentAnimModel}
+            className="anim-select"
+          >
+            <option value="polar">Полярная</option>
+            <option value="energyBars">Энергетические бары</option>
+            <option value="spectrumWaves">Спектральные волны</option>
+            <option value="pulseCircles">Пульсирующие круги</option>
+          </select>
+        )}
+
         <h1
           className={clsx("player-title", {
             gradient: isLive,
@@ -243,23 +282,35 @@ const Player = () => {
 
         <div
           className={clsx("listeners-container", {
-            hidden: !listenersCount || !isPlaying,
+            hidden: !listenersCount,
           })}
         >
-          <p>Слушателей:</p>
-          <p className="listeners">{listenersCount}</p>
+          <div className="listener-container">
+            <p>Слушателей:</p>
+            <p className="listeners">{listenersCount}</p>
+          </div>
+
+          <div className="listener-container">
+            <p>Макс. слушателей на текущем эфире:</p>
+            <p className="listeners">{maxListenersCount}</p>
+          </div>
         </div>
       </div>
 
       {isAudioVizVisible && (
         <div className="audio-viz">
           <AudioVisualizer
-            model={polar({
-              darkMode: true,
-              scale: 2,
-              binSize: 15,
-              color: audioVizColor,
-            })}
+            //@ts-ignore
+            model={
+              currentAnimModel === "polar"
+                ? polar({ darkMode: true, scale: 2 })
+                : currentAnimModel === "energyBars"
+                ? energyBars({ colors: ["#FF6B6B", "#4ECDC4", "#FFD60A"] })
+                : currentAnimModel === "spectrumWaves"
+                ? spectrumWaves({ speed: 0.8 })
+                : pulseCircles({ colors: ["#9B59B6", "#3498DB"], scale: 1.5 })
+            }
+            modelType={currentAnimModel}
           />
         </div>
       )}
