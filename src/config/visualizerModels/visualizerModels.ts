@@ -41,7 +41,7 @@ export const baseVisualizer = (options: VisualizationModelOptions = {}) => {
 
 // Модель "Pulse Circles"
 export const pulseCircles = (options: VisualizationModelOptions = {}) => {
-  const { parsedColors } = baseVisualizer(options);
+  const { parsedColors, speed } = baseVisualizer(options);
 
   const getGradientColor = (pulseFactor: number) => {
     const colorCount = parsedColors.length;
@@ -81,7 +81,7 @@ export const pulseCircles = (options: VisualizationModelOptions = {}) => {
 // Остальные модели оставим как есть для краткости
 // 1. Energy Bars
 export const energyBars = (options: VisualizationModelOptions = {}) => {
-  const { parsedColors } = baseVisualizer(options);
+  const { parsedColors, speed } = baseVisualizer(options);
 
   const getGradientColor = (energy: number) => {
     const colorCount = parsedColors.length;
@@ -95,7 +95,13 @@ export const energyBars = (options: VisualizationModelOptions = {}) => {
     return interpolateColor(parsedColors[index1], parsedColors[index2], factor);
   };
 
-  return (frequencyData: Uint8Array) => {
+  return (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    frequencyData: Uint8Array
+  ) => {
     const energy =
       frequencyData.reduce((sum, val) => sum + val, 0) /
       frequencyData.length /
@@ -106,7 +112,7 @@ export const energyBars = (options: VisualizationModelOptions = {}) => {
 
 // 2. Spectrum Waves
 export const spectrumWaves = (options: VisualizationModelOptions = {}) => {
-  const { parsedColors } = baseVisualizer(options);
+  const { parsedColors, speed } = baseVisualizer(options);
 
   const getGradientColor = (waveFactor: number) => {
     const colorCount = parsedColors.length;
@@ -120,7 +126,13 @@ export const spectrumWaves = (options: VisualizationModelOptions = {}) => {
     return interpolateColor(parsedColors[index1], parsedColors[index2], factor);
   };
 
-  return (x: number, width: number, frequencyData: Uint8Array) => {
+  return (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    frequencyData: Uint8Array
+  ) => {
     const freqIndex = Math.floor((x / width) * frequencyData.length);
     const amplitude = frequencyData[freqIndex] / 255;
     const waveFactor = amplitude;
@@ -130,7 +142,7 @@ export const spectrumWaves = (options: VisualizationModelOptions = {}) => {
 
 // 3. Polar
 export const polar = (options: VisualizationModelOptions = {}) => {
-  const { parsedColors } = baseVisualizer(options);
+  const { parsedColors, speed } = baseVisualizer(options);
 
   const getGradientColor = (frequencyFactor: number) => {
     const colorCount = parsedColors.length;
@@ -144,7 +156,13 @@ export const polar = (options: VisualizationModelOptions = {}) => {
     return interpolateColor(parsedColors[index1], parsedColors[index2], factor);
   };
 
-  return (frequencyData: Uint8Array) => {
+  return (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    frequencyData: Uint8Array
+  ) => {
     const lowRange =
       frequencyData
         .slice(0, frequencyData.length / 3)

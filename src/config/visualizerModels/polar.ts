@@ -10,6 +10,8 @@ export type PolarVisualizationModelOptions = {
 
 export const polar = (options: PolarVisualizationModelOptions = {}) => {
   const {
+    scale,
+    darkMode,
     colors = [
       "#FF6B6B", // Красный
       "#FF9F1C", // Оранжевый
@@ -21,6 +23,7 @@ export const polar = (options: PolarVisualizationModelOptions = {}) => {
       "#9B59B6", // Фиолетовый
       "#D4A5A5", // Розовый
     ],
+    speed = DEFAULT_OPTIONS.speed,
   } = {
     ...DEFAULT_OPTIONS,
     ...options,
@@ -43,7 +46,13 @@ export const polar = (options: PolarVisualizationModelOptions = {}) => {
     return interpolateColor(parsedColors[index1], parsedColors[index2], factor);
   };
 
-  return (frequencyData: Uint8Array) => {
+  return (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    frequencyData: Uint8Array
+  ) => {
     // Делим частоты на диапазоны: низкие, средние, высокие
     const lowRange =
       frequencyData

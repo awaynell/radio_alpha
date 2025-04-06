@@ -198,7 +198,7 @@ const Player = () => {
             <option value="polar">Полярная</option>
             <option value="energyBars">Энергетические бары</option>
             <option value="spectrumWaves">Спектральные волны</option>
-            <option value="pulseCircles">Пульсирующие круги</option>
+            {/* <option value="pulseCircles">Пульсирующие круги</option> */}
           </select>
         )}
 
