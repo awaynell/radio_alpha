@@ -10,20 +10,7 @@ export type VisualizationModelOptions = {
 
 // Базовая модель для всех визуализаций
 export const baseVisualizer = (options: VisualizationModelOptions = {}) => {
-  const {
-    colors = [
-      "#FF6B6B", // Красный
-      "#FF9F1C", // Оранжевый
-      "#FFD60A", // Жёлтый
-      "#2ECC71", // Зелёный
-      "#4ECDC4", // Бирюзовый
-      "#45B7D1", // Голубой
-      "#3498DB", // Синий
-      "#9B59B6", // Фиолетовый
-      "#D4A5A5", // Розовый
-    ],
-    speed = DEFAULT_OPTIONS.speed,
-  } = {
+  const { colors = DEFAULT_OPTIONS.colors, speed = DEFAULT_OPTIONS.speed } = {
     ...DEFAULT_OPTIONS,
     ...options,
   };
@@ -87,7 +74,7 @@ export const energyBars = (options: VisualizationModelOptions = {}) => {
     const colorCount = parsedColors.length;
     if (colorCount === 1) return parsedColors[0];
 
-    const offset = energy * (colorCount - 1);
+    const offset = energy * colorCount * 2;
     const index1 = Math.floor(offset) % colorCount;
     const index2 = (index1 + 1) % colorCount;
     const factor = offset - Math.floor(offset);

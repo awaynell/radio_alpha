@@ -24,6 +24,7 @@ import {
   spectrumWaves,
   pulseCircles,
 } from "@config/visualizerModels/visualizerModels";
+import { DEFAULT_OPTIONS } from "@config/visualizerModels/DEFAULT";
 
 const Player = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -176,7 +177,7 @@ const Player = () => {
       className={"radio-player-container"}
       onMouseEnter={() => setHidden(false)}
     >
-      <div className={clsx("radio-player", { "opacity-0": hidden })}>
+      <div className={clsx("radio-player", { "opacity-0 -zindex-1": hidden })}>
         <div>
           <Switch onChange={toggleAudioViz} />
         </div>
@@ -305,10 +306,10 @@ const Player = () => {
               currentAnimModel === "polar"
                 ? polar({ darkMode: true, scale: 2 })
                 : currentAnimModel === "energyBars"
-                ? energyBars({ colors: ["#FF6B6B", "#4ECDC4", "#FFD60A"] })
+                ? energyBars({ colors: DEFAULT_OPTIONS.colors })
                 : currentAnimModel === "spectrumWaves"
                 ? spectrumWaves({ speed: 0.8 })
-                : pulseCircles({ colors: ["#9B59B6", "#3498DB"], scale: 1.5 })
+                : pulseCircles({ colors: DEFAULT_OPTIONS.colors, scale: 1.5 })
             }
             modelType={currentAnimModel}
           />

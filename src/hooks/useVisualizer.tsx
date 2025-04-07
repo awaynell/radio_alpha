@@ -41,6 +41,7 @@ export const useVisualizer = (
     }
 
     if (audioContextRef.current && mediaElementRef.current) {
+      setHasInitialized(true);
       audioSrcRef.current = audioContextRef.current.createMediaElementSource(
         mediaElementRef.current
       );
@@ -50,7 +51,6 @@ export const useVisualizer = (
         audioSrcRef.current.connect(audioContextRef.current.destination);
       }
       audioContextRef.current.resume();
-      setHasInitialized(true);
     }
   }, [
     audioContextRef.current,

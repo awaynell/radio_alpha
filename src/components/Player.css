@@ -84,6 +84,12 @@
   transition: background 0.3s ease-in-out;
 }
 
+@media (max-width: 768px) {
+  .player-title {
+    font-size: 64px;
+  }
+}
+
 .player-title.gradient {
   background: linear-gradient(90deg, #d90681, rgb(225, 105, 58));
 
@@ -164,6 +170,12 @@
   align-items: center;
 }
 
+@media (max-width: 768px) {
+  .radio-player-controls {
+    margin-top: 20px;
+  }
+}
+
 .audio-viz {
   position: fixed;
   bottom: 0px;
@@ -194,10 +206,15 @@
   height: 0 !important;
   padding: 0 !important;
   font-size: 0 !important;
+  z-index: -1;
 }
 
 .opacity-0 {
   opacity: 0 !important;
+}
+
+.-zindex-1 {
+  z-index: -1;
 }
 
 .loader {

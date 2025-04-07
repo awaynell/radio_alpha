@@ -12,17 +12,7 @@ export const polar = (options: PolarVisualizationModelOptions = {}) => {
   const {
     scale,
     darkMode,
-    colors = [
-      "#FF6B6B", // Красный
-      "#FF9F1C", // Оранжевый
-      "#FFD60A", // Жёлтый
-      "#2ECC71", // Зелёный
-      "#4ECDC4", // Бирюзовый
-      "#45B7D1", // Голубой
-      "#3498DB", // Синий
-      "#9B59B6", // Фиолетовый
-      "#D4A5A5", // Розовый
-    ],
+    colors = DEFAULT_OPTIONS.colors,
     speed = DEFAULT_OPTIONS.speed,
   } = {
     ...DEFAULT_OPTIONS,
@@ -38,7 +28,7 @@ export const polar = (options: PolarVisualizationModelOptions = {}) => {
     if (colorCount === 1) return parsedColors[0];
 
     // Распределяем частоты на всю палитру
-    const offset = frequencyFactor * (colorCount - 1); // От 0 до последнего цвета
+    const offset = frequencyFactor * colorCount; // От 0 до последнего цвета
     const index1 = Math.floor(offset) % colorCount;
     const index2 = (index1 + 1) % colorCount;
     const factor = offset - Math.floor(offset);
