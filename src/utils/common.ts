@@ -112,10 +112,9 @@ function hexToRgb(hex: string) {
   };
 }
 
-export const encodeString = (rawData: string) => {
-  const byteArray = Uint8Array.from(
-    rawData.split("").map((c) => c.charCodeAt(0))
-  );
-
-  return new TextDecoder("UTF-8").decode(byteArray);
-};
+export function decodeHtmlEntities(str: string): string {
+  if (!str) return "";
+  const el = document.createElement("textarea");
+  el.innerHTML = str;
+  return el.value;
+}

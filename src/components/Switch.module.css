@@ -1,5 +1,5 @@
 .switchCheck {
-  --size: 30px;
+  --size: 25px;
   position: relative;
   background: linear-gradient(90deg, #f19af3, #f099b5);
   line-height: 0;

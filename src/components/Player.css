@@ -77,6 +77,12 @@
 
   cursor: default;
 
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* старый IE/Edge */
+  user-select: none;
+  -webkit-touch-callout: none; /* iOS Safari */
+
   color: transparent; /* Прозрачный цвет текста */
   -webkit-text-stroke: 1px rgb(28, 27, 12); /* Белая обводка для WebKit */
   text-stroke: 0.5px white; /* Белая обводка для других браузеров */
@@ -225,9 +231,47 @@
 
 .anim-select {
   background-color: black;
-  margin-top: 10px;
 }
 
 .anim-select option {
   background-color: black;
+}
+
+.vote-block {
+  display: flex;
+  gap: 10px;
+}
+
+.vote-btn {
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.389);
+  color: white;
+}
+
+.vote-btn:hover {
+  transition: all 0.25s;
+  transform: scale(1.2);
+  background-color: rgba(255, 255, 255, 0.153);
+}
+
+.anim-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.topSongsButton {
+  background-color: black;
+  transition: all 0.25s;
+  padding: 10px;
+  margin-top: 10px;
+  border: 1px solid transparent;
+}
+
+.topSongsButton:hover {
+  background-color: hsla(0, 0%, 100%, 0.755);
+  border: 1px solid white;
+  transform: scale(1.1);
+  color: black;
 }

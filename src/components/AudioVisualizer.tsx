@@ -1,5 +1,17 @@
 import { MutableRefObject, useCallback, useRef, useEffect } from "react";
 
+const VIS = {
+  rot: 0,
+  prevPeaks: [],
+  beatEma: 0,
+  lastBeatT: -1,
+  beatPulse: 0,
+  beatCooldown: 0.22, // сек между срабатываниями бита
+  threshold: 0.08, // дельта над EMA для детекции бита
+  energyEma: 0, // эксп. среднее общей энергии (для глобального пульса)
+  _prevTime: 0,
+};
+
 export const AudioVisualizer = (props: {
   model: (
     x: number,
@@ -185,32 +197,118 @@ export const AudioVisualizer = (props: {
 
       case "pulseCircles": {
         const maxRadius = Math.min(width, height) * 0.4;
-        const peaks = Array.from(frequencyData)
+
+        // --- стабильное dt ---
+        const dt = Math.max(0.001, time - (VIS._prevTime || time));
+        VIS._prevTime = time;
+
+        // --- Бит по басу (как раньше, но чуть компактно) ---
+        const bassBins = Math.min(32, frequencyData.length);
+        let bassEnergy = 0;
+        for (let i = 0; i < bassBins; i++) bassEnergy += frequencyData[i] / 255;
+        bassEnergy /= Math.max(1, bassBins);
+
+        const emaAlphaBeat = 0.15;
+        VIS.beatEma =
+          (1 - emaAlphaBeat) * VIS.beatEma + emaAlphaBeat * bassEnergy;
+
+        const isBeat =
+          bassEnergy - VIS.beatEma > VIS.threshold &&
+          time - VIS.lastBeatT > VIS.beatCooldown;
+
+        if (isBeat) {
+          VIS.lastBeatT = time;
+          VIS.beatPulse = 1; // краткий импульс на удар
+        }
+        // быстрый спад импульса бита
+        VIS.beatPulse *= Math.exp(-dt * 6.0);
+
+        // --- ГЛОБАЛЬНАЯ АКТИВНОСТЬ (чтобы пульсировал весь круг) ---
+        // Усреднённая энергия по всему спектру
+        let energy = 0;
+        for (let i = 0; i < frequencyData.length; i++)
+          energy += frequencyData[i];
+        energy /= 255 * Math.max(1, frequencyData.length); // 0..1
+
+        // EMA общей энергии
+        const emaAlphaEnergy = 0.06; // более инертное среднее, чтобы не «молотило»
+        VIS.energyEma =
+          (1 - emaAlphaEnergy) * VIS.energyEma + emaAlphaEnergy * energy;
+
+        // Положительная дельта над EMA — «активная партия»
+        // Усиливаем коэффициентом, затем ограничиваем до [0..1]
+        const activityPulse = Math.min(
+          1,
+          Math.max(0, (energy - VIS.energyEma) * 6.0)
+        );
+
+        // Итоговый импульс для «общего пульса» всей сцены:
+        const globalPulse = Math.max(VIS.beatPulse, activityPulse);
+
+        // --- Пики как у тебя, но слегка сгладим, чтобы убрать дрожь ---
+        const rawPeaks = Array.from(frequencyData)
           .filter((_, i) => i % 10 === 0)
           .map((val) => val / 255);
 
-        peaks.forEach((amplitude, i) => {
-          const angle = (i / peaks.length) * Math.PI * 2;
-          const basePulse = Math.sin(time * 2 + i) * 0.5 + 0.5;
-          const circleX = centerX + Math.cos(angle) * maxRadius * 0.8;
-          const circleY = centerY + Math.sin(angle) * maxRadius * 0.8;
+        if (VIS.prevPeaks.length !== rawPeaks.length) {
+          VIS.prevPeaks = rawPeaks.slice();
+        }
+        const peaks = rawPeaks.map((v, i) => {
+          const prev = VIS.prevPeaks[i];
+          return prev + (v - prev) * 0.25; // лёгкое сглаживание
+        });
+        VIS.prevPeaks = peaks;
 
-          // Получаем цвет для текущей частоты
+        // --- Скорость вращения зависит от ритма/активности ---
+        const baseRot = 0.9; // рад/сек
+        const rotSpeed = baseRot * (0.7 + 0.6 * energy) + 1.8 * globalPulse;
+        VIS.rot += rotSpeed * dt;
+
+        // --- Кольцо «дышит» радиусом от активности/бита ---
+        // Было 0.8, сделаем чуть больше + пульс при активной музыке
+        const ringPulse = 1 + 0.05 * energy + 0.12 * globalPulse;
+        const baseRing = maxRadius * 0.9 * ringPulse;
+
+        peaks.forEach((amplitude, i) => {
+          const angle = (i / peaks.length) * Math.PI * 2 + VIS.rot;
+
+          // Небольшой, но не шумный wobble, чтобы узор жил
+          const wobble =
+            (Math.sin(time * 1.5 + i * 0.7) * 0.5 +
+              Math.sin(time * 0.9 + i * 2.1) * 0.5) *
+            0.012; // ±1.2%
+
+          const radius = baseRing * (1 + wobble);
+          const circleX = centerX + Math.cos(angle) * radius;
+          const circleY = centerY + Math.sin(angle) * radius;
+
+          // Базовое дыхание точки + локальная амплитуда + ГЛОБАЛЬНЫЙ ПУЛЬС
+          const basePulse = Math.sin(time * 2 + i) * 0.5 + 0.5;
+
+          // Усиление размера на активной партии — влияет на ВСЕ точки
+          const sizeBoostOnPulse = globalPulse * 14; // px
+
+          // Немного усилим вклад локальной амплитуды, чтобы не терялась детализация
+          const r =
+            basePulse * 20 +
+            amplitude * maxRadius * 0.25 + // было 0.2 → чуть заметнее локальные пики
+            sizeBoostOnPulse;
+
+          // Цвет как у тебя
           const color = model(i, 0, peaks.length, height, frequencyData);
 
-          ctx.beginPath();
-          ctx.arc(
-            circleX,
-            circleY,
-            basePulse * 20 + amplitude * maxRadius * 0.2,
-            0,
-            Math.PI * 2
+          // Альфа также «общая», чтобы круг целиком «дышал»
+          const alpha = Math.min(
+            1,
+            0.28 + amplitude * 0.6 + globalPulse * 0.35
           );
-          ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${
-            0.3 + amplitude * 0.7
-          })`;
+
+          ctx.beginPath();
+          ctx.arc(circleX, circleY, r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
           ctx.fill();
         });
+
         break;
       }
 
