@@ -58,7 +58,7 @@ export const useGetTopSongs = () => {
 
     fetchTopSongs();
 
-    const interval = setInterval(fetchTopSongs, 60_000);
+    const interval = setInterval(fetchTopSongs, 600000);
     return () => clearInterval(interval);
   }, []);
 

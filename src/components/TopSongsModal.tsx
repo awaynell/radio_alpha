@@ -38,7 +38,7 @@ export const TopSongsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h2 className={styles.title}>Топ песен</h2>
+        <h2 className={styles.title}>Топ треков</h2>
 
         {isLoading ? (
           <p className={styles.loading}>Загрузка...</p>
