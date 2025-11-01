@@ -22,16 +22,57 @@ import Switch from "./Switch";
 import {
   energyBars,
   spectrumWaves,
-  pulseCircles,
 } from "@config/visualizerModels/visualizerModels";
 import { DEFAULT_OPTIONS } from "@config/visualizerModels/DEFAULT";
 import { useTrackVotes } from "@hooks/useTrackVotes";
-import { useGetTopSongs } from "@hooks/useGetTopSongs";
 import { TopSongsModal } from "./TopSongsModal";
 
 const Player = () => {
+  // Загрузка значений из localStorage при инициализации
+  const getStoredVolume = (): number => {
+    const stored = localStorage.getItem("radio-alpha-volume");
+    if (stored !== null) {
+      const parsed = parseFloat(stored);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+        return parsed;
+      }
+    }
+    return 0.25; // значение по умолчанию
+  };
+
+  const getStoredAudioVizVisible = (): boolean => {
+    const stored = localStorage.getItem("radio-alpha-audio-viz-visible");
+    if (stored !== null) {
+      return stored === "true";
+    }
+    return true; // значение по умолчанию
+  };
+
+  const getStoredAnimModel = ():
+    | "polar"
+    | "dominantFrequency"
+    | "energyBars"
+    | "spectrumWaves" => {
+    const stored = localStorage.getItem("radio-alpha-anim-model");
+    if (
+      stored &&
+      ["polar", "dominantFrequency", "energyBars", "spectrumWaves"].includes(
+        stored
+      )
+    ) {
+      return stored as
+        | "polar"
+        | "dominantFrequency"
+        | "energyBars"
+        | "spectrumWaves";
+    }
+    return "polar"; // значение по умолчанию
+  };
+
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.25);
+  const [volume, setVolume] = useState(getStoredVolume);
+  const volumeRef = useRef(getStoredVolume()); // Ref для хранения текущего значения без ре-рендеров
+  const saveTimeoutRef = useRef<number | null>(null); // Ref для throttle сохранения
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [currentSongTitle, setCurrentSongTitle] = useState("");
@@ -39,12 +80,11 @@ const Player = () => {
   const [maxListenersCount, setMaxListenersCount] = useState(0);
   const [isLive, setIsLive] = useState(false);
   const [currentAnimModel, setCurrentAnimModel] = useState<
-    | "polar"
-    | "dominantFrequency"
-    | "energyBars"
-    | "spectrumWaves"
-    | "pulseCircles"
-  >("polar");
+    "polar" | "dominantFrequency" | "energyBars" | "spectrumWaves"
+  >(getStoredAnimModel);
+  const [apiStatusError, setApiStatusError] = useState<string | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(false);
+  const [statusRetryable, setStatusRetryable] = useState(false);
 
   const {
     vote,
@@ -60,7 +100,9 @@ const Player = () => {
   const [canHidden, setCanHidden] = useState(true);
   const [hidden, setHidden] = useState(false);
   const [isTopSongsModalOpen, setIsTopSongsModalOpen] = useState(false);
-  const [isAudioVizVisible, setIsAudioVizVisible] = useState(true);
+  const [isAudioVizVisible, setIsAudioVizVisible] = useState(
+    getStoredAudioVizVisible
+  );
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -101,43 +143,111 @@ const Player = () => {
     }
   }, [isPlaying]);
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setHidden(false);
+  // Ref для DOM элемента label громкости
+  const volumeLabelRef = useRef<HTMLParagraphElement | null>(null);
 
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    if (audioRef.current) {
-      audioRef.current.volume = newVolume;
-    }
-  };
+  // Обработчик изменения громкости - вызывается при каждом движении ползунка
+  // Оптимизирован для минимального количества ре-рендеров
+  const handleVolumeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setHidden(false);
+
+      const newVolume = parseFloat(e.target.value);
+      volumeRef.current = newVolume;
+
+      // Немедленно обновляем громкость аудио элемента (синхронно, но не блокирует рендер)
+      if (audioRef.current) {
+        audioRef.current.volume = newVolume;
+      }
+
+      // Обновляем label напрямую через DOM, чтобы избежать ре-рендеров React
+      if (volumeLabelRef.current) {
+        volumeLabelRef.current.textContent = `${Math.round(newVolume * 100)}%`;
+      }
+
+      // Очищаем предыдущий таймер сохранения
+      if (saveTimeoutRef.current !== null) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      // Обновляем состояние и localStorage с задержкой (throttle)
+      // Это предотвращает множественные ре-рендеры при быстром движении ползунка
+      saveTimeoutRef.current = window.setTimeout(() => {
+        setVolume(newVolume);
+        localStorage.setItem("radio-alpha-volume", newVolume.toString());
+        saveTimeoutRef.current = null;
+      }, 200);
+    },
+    []
+  );
 
   const getRadioStatus = async () => {
-    const radioStatus = await fetchStatusJson();
+    setIsLoadingStatus(true);
 
-    const songTitle = radioStatus?.icestats?.source?.title;
+    // Не очищаем ошибку сразу, чтобы пользователь видел предыдущую ошибку
+    // пока идет новый запрос
 
-    const listenersCount = radioStatus?.icestats?.source?.listeners;
+    const result = await fetchStatusJson();
 
-    const maxListenersCount = radioStatus?.icestats?.source?.listener_peak;
+    if (result.error) {
+      setApiStatusError(result.error);
+      setStatusRetryable(result.isRetryable);
 
-    setListenersCount(listenersCount || 0);
+      // Fallback: сохраняем предыдущие значения при ошибке API
+      // Это позволяет интерфейсу продолжать работать даже при временных сбоях
+      // Значения обновятся при следующем успешном запросе
+    } else if (result.data) {
+      const radioStatus = result.data;
+      const songTitle = radioStatus?.icestats?.source?.title;
+      const listenersCount = radioStatus?.icestats?.source?.listeners;
+      const maxListenersCount = radioStatus?.icestats?.source?.listener_peak;
 
-    setMaxListenersCount(maxListenersCount || 0);
+      // Обновляем значения только если они получены
+      // Используем fallback к 0 для числовых значений
+      setListenersCount(listenersCount ?? 0);
+      setMaxListenersCount(maxListenersCount ?? 0);
+      setIsLive(radioStatus?.icestats?.source !== undefined);
 
-    setIsLive(radioStatus?.icestats?.source !== undefined);
+      if (songTitle && songTitle.length !== 0) {
+        setCurrentSongTitle(decodeHtmlEntities(songTitle));
+      } else if (!songTitle) {
+        // Если нет названия трека, но данные получены, оставляем предыдущее значение
+        // или пустую строку, если это первый запрос
+      }
 
-    if (songTitle && songTitle.length !== 0) {
-      setCurrentSongTitle(decodeHtmlEntities(songTitle));
+      // Очищаем ошибку при успешном получении данных
+      setApiStatusError(null);
+      setStatusRetryable(false);
     }
+
+    setIsLoadingStatus(false);
   };
 
-  const toggleAudioViz = (e) => {
-    setIsAudioVizVisible(e.target.checked);
+  const toggleAudioViz = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
+    setIsAudioVizVisible(newValue);
+    // Сохранение в localStorage
+    localStorage.setItem("radio-alpha-audio-viz-visible", newValue.toString());
   };
 
-  const toggleHidden = (e) => {
-    setCanHidden(e.target.checked);
-  };
+  // Установка начальной громкости из localStorage при инициализации audio элемента
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+    if (volumeLabelRef.current) {
+      volumeLabelRef.current.textContent = `${Math.round(volume * 100)}%`;
+    }
+  }, []); // Устанавливаем громкость только при монтировании
+
+  // Очистка таймера при размонтировании
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current !== null) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     document.body.addEventListener("pointermove", () => {
@@ -155,7 +265,12 @@ const Player = () => {
         togglePlay();
       }
 
-      if (!hasError) {
+      // Обновляем статус, даже если была ошибка API
+      // Для retryable ошибок продолжаем попытки с обычной частотой
+      // Для non-retryable ошибок все равно обновляем, но пользователь увидит ошибку
+      if (!isLoadingStatus) {
+        // Пропускаем обновление только если ошибка non-retryable и прошло мало времени
+        // (но все равно обновим через некоторое время)
         getRadioStatus();
       }
     }, 5000);
@@ -182,26 +297,25 @@ const Player = () => {
     >
       <div className={clsx("radio-player", { "opacity-0 -zindex-1": hidden })}>
         <div className="anim-controls">
-          <Switch onChange={toggleAudioViz} />
+          <Switch onChange={toggleAudioViz} checked={isAudioVizVisible} />
 
           {isAudioVizVisible && (
             <select
-              onChange={(e) =>
-                setCurrentAnimModel(
-                  e.target.value as
-                    | "polar"
-                    | "energyBars"
-                    | "spectrumWaves"
-                    | "pulseCircles"
-                )
-              }
+              onChange={(e) => {
+                const newModel = e.target.value as
+                  | "polar"
+                  | "energyBars"
+                  | "spectrumWaves";
+                setCurrentAnimModel(newModel);
+                // Сохранение в localStorage
+                localStorage.setItem("radio-alpha-anim-model", newModel);
+              }}
               value={currentAnimModel}
               className="anim-select"
             >
               <option value="polar">Полярная</option>
               <option value="energyBars">Энергетические бары</option>
               <option value="spectrumWaves">Спектральные волны</option>
-              {/* <option value="pulseCircles">Пульсирующие круги</option> */}
             </select>
           )}
         </div>
@@ -282,6 +396,24 @@ const Player = () => {
           <p className="player-text player-error">{error}</p>
         )}
 
+        {apiStatusError && (
+          <div className="api-status-error">
+            <p className="player-text player-error">{apiStatusError}</p>
+            {statusRetryable && (
+              <button
+                className="retry-button"
+                onClick={() => {
+                  setApiStatusError(null);
+                  getRadioStatus();
+                }}
+                disabled={isLoadingStatus}
+              >
+                {isLoadingStatus ? "Обновление..." : "Повторить попытку"}
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="volume-slider">
           <p>Громкость</p>
           <input
@@ -289,14 +421,16 @@ const Player = () => {
             min="0"
             max="1"
             step="0.01"
-            value={volume}
+            defaultValue={volume}
             onChange={handleVolumeChange}
             className={clsx("styled-slider", {
               gradient: isLive,
             })}
           />
 
-          <p className="volume-label">{`${Math.round(volume * 100)}%`}</p>
+          <p ref={volumeLabelRef} className="volume-label">
+            {`${Math.round(volume * 100)}%`}
+          </p>
         </div>
         <div className="audio-container">
           <audio
@@ -333,12 +467,14 @@ const Player = () => {
             //@ts-ignore
             model={
               currentAnimModel === "polar"
-                ? polar({ darkMode: true, scale: 2 })
+                ? polar({
+                    darkMode: true,
+                    scale: 2,
+                    colors: DEFAULT_OPTIONS.colors,
+                  })
                 : currentAnimModel === "energyBars"
                 ? energyBars({ colors: DEFAULT_OPTIONS.colors })
-                : currentAnimModel === "spectrumWaves"
-                ? spectrumWaves({ speed: 0.8 })
-                : pulseCircles({ colors: DEFAULT_OPTIONS.colors, scale: 1.5 })
+                : spectrumWaves({ colors: DEFAULT_OPTIONS.colors, speed: 0.8 })
             }
             modelType={currentAnimModel}
           />

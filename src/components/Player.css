@@ -275,3 +275,39 @@
   transform: scale(1.1);
   color: black;
 }
+
+.player-error {
+  color: #ff4444;
+  font-size: 18px;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.api-status-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.retry-button {
+  padding: 8px 16px;
+  background-color: rgba(217, 6, 129, 0.8);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.25s ease-in-out;
+}
+
+.retry-button:hover:not(:disabled) {
+  background-color: rgba(217, 6, 129, 1);
+  transform: scale(1.05);
+}
+
+.retry-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
