@@ -1,4 +1,5 @@
 // src/hooks/useTrackVotes.ts
+import { API_URL } from "@config/api";
 import { createClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 
@@ -24,9 +25,7 @@ export const useTrackVotes = (track: string | null) => {
   /** один раз узнаём внешний IP */
   useEffect(() => {
     (async () => {
-      const ip = (
-        await fetch("https://radioalpha.mooo.com/ip").then((r) => r.text())
-      ).trim();
+      const ip = (await fetch(`${API_URL}/ip`).then((r) => r.text())).trim();
       setUserIP(ip);
     })();
   }, []);

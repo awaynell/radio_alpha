@@ -1,0 +1,75 @@
+.switch {
+  --size: 24px;
+  position: relative;
+  line-height: 0;
+  font-size: var(--size);
+}
+
+.switch input[type="checkbox"],
+.switch label {
+  appearance: none;
+  display: inline-block;
+  border-radius: var(--size);
+  border: 0;
+  transition: 0.25s ease-in-out;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* Трек */
+.switch label {
+  width: calc(2.1 * var(--size));
+  height: var(--size);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+}
+
+.switch label:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Ползунок */
+.switch input[type="checkbox"] {
+  position: absolute;
+  z-index: 1;
+  width: calc(0.9 * var(--size));
+  height: calc(0.9 * var(--size));
+  top: calc(0.05 * var(--size));
+  left: calc(0.06 * var(--size));
+  background: #ef3f04;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  outline: none;
+  margin: 0;
+  border-radius: calc(0.45 * var(--size));
+}
+
+.switch input[type="checkbox"]:hover {
+  background: #d90681;
+}
+
+/* Активное состояние */
+.switch input[type="checkbox"]:checked {
+  left: calc(1.16 * var(--size));
+  background: linear-gradient(90deg, #d90681, #e1693a);
+}
+
+.switch input[type="checkbox"]:checked + label {
+  border-color: rgba(217, 6, 129, 0.5);
+  box-shadow: 0 4px 16px rgba(217, 6, 129, 0.25);
+}
+
+/* Фокус */
+.switch input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(217, 6, 129, 0.5);
+}
+
+/* Disabled */
+.switch input[type="checkbox"]:disabled,
+.switch input[type="checkbox"]:disabled + label {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
