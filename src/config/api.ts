@@ -1,7 +1,7 @@
 export const environment = import.meta.env.VITE_ENVIRONMENT;
 
 export const API_URL =
-  environment === "production"
+  environment === "prod"
     ? import.meta.env.VITE_PROD_API_URL
     : import.meta.env.VITE_DEV_API_URL;
 
