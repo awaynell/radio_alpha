@@ -1,0 +1,53 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Create .env file
+        run: |
+          echo "VITE_ENVIRONMENT=prod" > .env
+          echo "VITE_PROD_API_URL=${{ secrets.VITE_PROD_API_URL }}" >> .env
+          echo "VITE_SUPA_URL=${{ secrets.VITE_SUPA_URL }}" >> .env
+          echo "VITE_SUPA_KEY=${{ secrets.VITE_SUPA_KEY }}" >> .env
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Deploy to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "dist/*"
+          target: "/var/www/radio_alpha/dist" # ← путь до dist
+          strip_components: 1 # убирает папку dist из пути
+          rm: true # удаляет старые файлы перед копированием
+
+      - name: Restart nginx
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo systemctl reload nginx

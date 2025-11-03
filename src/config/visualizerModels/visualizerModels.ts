@@ -1,11 +1,14 @@
 import { parseCSSColor } from "@utils/parseCSSColor";
 import { DEFAULT_OPTIONS, interpolateColor } from "./DEFAULT";
+import { radialPetals } from "./radialPetals";
 
 export type VisualizationModelOptions = {
   darkMode?: boolean;
   scale?: number;
   colors?: string[];
   speed?: number;
+  gamma?: number; // степень нелинейности
+  percentile?: number; // уровень перцентиля нормализации (0..1)
 };
 
 // Базовая модель для всех визуализаций
@@ -28,7 +31,7 @@ export const baseVisualizer = (options: VisualizationModelOptions = {}) => {
 
 // Модель "Pulse Circles"
 export const pulseCircles = (options: VisualizationModelOptions = {}) => {
-  const { parsedColors, speed } = baseVisualizer(options);
+  const { parsedColors } = baseVisualizer(options);
 
   const getGradientColor = (pulseFactor: number) => {
     const colorCount = parsedColors.length;
@@ -68,13 +71,15 @@ export const pulseCircles = (options: VisualizationModelOptions = {}) => {
 // Остальные модели оставим как есть для краткости
 // 1. Energy Bars
 export const energyBars = (options: VisualizationModelOptions = {}) => {
-  const { parsedColors, speed } = baseVisualizer(options);
+  const { parsedColors } = baseVisualizer(options);
+  const gamma = Math.max(0.3, options.gamma ?? 1.7);
+  const percentile = Math.min(0.99, Math.max(0.5, options.percentile ?? 0.75));
 
   const getGradientColor = (energy: number) => {
     const colorCount = parsedColors.length;
     if (colorCount === 1) return parsedColors[0];
 
-    const offset = energy * colorCount * 2;
+    const offset = energy * (colorCount - 1);
     const index1 = Math.floor(offset) % colorCount;
     const index2 = (index1 + 1) % colorCount;
     const factor = offset - Math.floor(offset);
@@ -84,22 +89,35 @@ export const energyBars = (options: VisualizationModelOptions = {}) => {
 
   return (
     x: number,
-    y: number,
+    _y: number,
     width: number,
-    height: number,
+    _height: number,
     frequencyData: Uint8Array
   ) => {
-    const energy =
-      frequencyData.reduce((sum, val) => sum + val, 0) /
-      frequencyData.length /
-      255;
-    return getGradientColor(energy);
+    const len = Math.max(1, frequencyData.length);
+    const norm = new Array<number>(len);
+    for (let i = 0; i < len; i++) norm[i] = frequencyData[i] / 255;
+    // референс по перцентилю спектра
+    const sorted = norm.slice().sort((a, b) => a - b);
+    const pIndex = Math.min(
+      sorted.length - 1,
+      Math.max(0, Math.floor(percentile * sorted.length))
+    );
+    const pRef = Math.max(0.05, sorted[pIndex]);
+
+    const avg = norm.reduce((s, v) => s + v, 0) / len;
+    const sensitivity = 2.0;
+    const normalized = Math.min(1, (avg / pRef) * sensitivity);
+    const nonlinear = Math.min(1, Math.pow(Math.max(0, normalized), gamma));
+    return getGradientColor(nonlinear);
   };
 };
 
 // 2. Spectrum Waves
 export const spectrumWaves = (options: VisualizationModelOptions = {}) => {
-  const { parsedColors, speed } = baseVisualizer(options);
+  const { parsedColors } = baseVisualizer(options);
+  const gamma = Math.max(0.3, options.gamma ?? 1.7);
+  const percentile = Math.min(0.99, Math.max(0.5, options.percentile ?? 0.75));
 
   const getGradientColor = (waveFactor: number) => {
     const colorCount = parsedColors.length;
@@ -120,26 +138,39 @@ export const spectrumWaves = (options: VisualizationModelOptions = {}) => {
     height: number,
     frequencyData: Uint8Array
   ) => {
-    const freqIndex = Math.floor((x / width) * frequencyData.length);
-    const amplitude = frequencyData[freqIndex] / 255;
-    const waveFactor = amplitude;
-    return getGradientColor(waveFactor);
+    const len = Math.max(1, frequencyData.length);
+    const freqIndex = Math.min(
+      len - 1,
+      Math.max(0, Math.floor((x / Math.max(1, width)) * len))
+    );
+    const amp = frequencyData[freqIndex] / 255;
+
+    const norm = new Array<number>(len);
+    for (let i = 0; i < len; i++) norm[i] = frequencyData[i] / 255;
+    const sorted = norm.slice().sort((a, b) => a - b);
+    const pIndex = Math.min(
+      sorted.length - 1,
+      Math.max(0, Math.floor(percentile * sorted.length))
+    );
+    const pRef = Math.max(0.05, sorted[pIndex]);
+    const sensitivity = 2.0;
+    const normalized = Math.min(1, (amp / pRef) * sensitivity);
+    const nonlinear = Math.min(1, Math.pow(Math.max(0, normalized), gamma));
+    return getGradientColor(nonlinear);
   };
 };
 
 // 3. Polar
 export const polar = (options: VisualizationModelOptions = {}) => {
-  const { parsedColors, speed } = baseVisualizer(options);
+  const { parsedColors } = baseVisualizer(options);
 
-  const getGradientColor = (frequencyFactor: number) => {
+  const getGradientByFactor = (factor01: number) => {
     const colorCount = parsedColors.length;
     if (colorCount === 1) return parsedColors[0];
-
-    const offset = frequencyFactor * (colorCount - 1);
+    const offset = factor01 * (colorCount - 1);
     const index1 = Math.floor(offset) % colorCount;
     const index2 = (index1 + 1) % colorCount;
     const factor = offset - Math.floor(offset);
-
     return interpolateColor(parsedColors[index1], parsedColors[index2], factor);
   };
 
@@ -169,7 +200,70 @@ export const polar = (options: VisualizationModelOptions = {}) => {
       (frequencyData.length / 3) /
       255;
 
-    const frequencyFactor = lowRange * 0.3 + midRange * 0.4 + highRange * 0.3;
-    return getGradientColor(frequencyFactor);
+    const frequencyFactor = lowRange * 0.3 + midRange * 0.4 + highRange * 0.3; // 0..1
+
+    // Усиленная чувствительность цвета (адаптивный перцентиль + pow)
+    const len = Math.max(1, frequencyData.length);
+    const norm = new Array<number>(len);
+    for (let i = 0; i < len; i++) norm[i] = frequencyData[i] / 255;
+    const sorted = norm.slice().sort((a, b) => a - b);
+    const p75Index = Math.min(
+      sorted.length - 1,
+      Math.max(0, Math.floor(0.75 * sorted.length))
+    );
+    const p75 = Math.max(0.05, sorted[p75Index]);
+    const colorSensitivity = 1.7;
+    const normalized = Math.min(1, (frequencyFactor / p75) * colorSensitivity);
+    const nonlinear = Math.min(1, Math.pow(Math.max(0, normalized), 1.6));
+    return getGradientByFactor(nonlinear);
   };
 };
+
+// 4. Adaptive colors (усиленная чувствительность по всему спектру)
+export const adaptiveColors = (options: VisualizationModelOptions = {}) => {
+  const { parsedColors } = baseVisualizer(options);
+  const gamma = Math.max(0.3, options.gamma ?? 1.7);
+  const percentile = Math.min(0.99, Math.max(0.5, options.percentile ?? 0.75));
+
+  const getGradientByFactor = (factor01: number) => {
+    const colorCount = parsedColors.length;
+    if (colorCount === 1) return parsedColors[0];
+    const offset = factor01 * (colorCount - 1);
+    const index1 = Math.floor(offset) % colorCount;
+    const index2 = (index1 + 1) % colorCount;
+    const factor = offset - Math.floor(offset);
+    return interpolateColor(parsedColors[index1], parsedColors[index2], factor);
+  };
+
+  return (
+    x: number,
+    _y: number,
+    width: number,
+    _height: number,
+    frequencyData: Uint8Array
+  ) => {
+    const len = Math.max(1, frequencyData.length);
+    // Выбираем частотный бин относительно позиции x (для warpGrid: x=i, width=layers)
+    const binIndex = Math.min(
+      len - 1,
+      Math.max(0, Math.floor((x / Math.max(1, width)) * len))
+    );
+    const binAmp = frequencyData[binIndex] / 255; // 0..1
+
+    // Адаптивная чувствительность по спектру
+    const norm = new Array<number>(len);
+    for (let i = 0; i < len; i++) norm[i] = frequencyData[i] / 255;
+    const sorted = norm.slice().sort((a, b) => a - b);
+    const pIndex = Math.min(
+      sorted.length - 1,
+      Math.max(0, Math.floor(percentile * sorted.length))
+    );
+    const pRef = Math.max(0.05, sorted[pIndex]);
+    const colorSensitivity = 2.0;
+    const normalized = Math.min(1, (binAmp / pRef) * colorSensitivity);
+    const nonlinear = Math.min(1, Math.pow(Math.max(0, normalized), gamma));
+    return getGradientByFactor(nonlinear);
+  };
+};
+
+export { radialPetals };

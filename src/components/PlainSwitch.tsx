@@ -1,5 +1,5 @@
 import { FC, useId } from "react";
-import styles from "./Switch.module.css";
+import styles from "./PlainSwitch.module.css";
 
 type Props = {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -7,12 +7,11 @@ type Props = {
   disabled?: boolean;
   id?: string;
   ariaLabel?: string;
-  /** размер в px для CSS переменной --size */
-  size?: number;
+  size?: number; // px, управляет --size
   className?: string;
 };
 
-const Switch: FC<Props> = ({
+export const PlainSwitch: FC<Props> = ({
   onChange,
   checked,
   disabled,
@@ -22,10 +21,10 @@ const Switch: FC<Props> = ({
   className,
 }) => {
   const autoId = useId();
-  const inputId = id ?? `switch-${autoId}`;
+  const inputId = id ?? `plain-switch-${autoId}`;
   return (
     <div
-      className={`${styles.switchCheck}${className ? ` ${className}` : ""}`}
+      className={`${styles.switch}${className ? ` ${className}` : ""}`}
       style={
         size ? ({ ["--size"]: `${size}px` } as React.CSSProperties) : undefined
       }
@@ -45,4 +44,4 @@ const Switch: FC<Props> = ({
   );
 };
 
-export default Switch;
+export default PlainSwitch;

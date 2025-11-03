@@ -1,7 +1,39 @@
-import { API_URL } from "../config/api";
+import { API_URL, environment } from "../config/api";
 import { IRadioStatus } from "../types/IRadioStatus";
 import { fetchWithRetry } from "../utils/fetchWithRetry";
 import { getErrorMessage } from "../utils/errorMessages";
+import { decodeWindows1251, fixDoubleEncoding } from "../utils/common";
+
+/**
+ * Рекурсивно исправляет кодировку во всех строковых значениях объекта
+ */
+function fixEncodingInObject(obj: unknown): unknown {
+  if (typeof obj === "string") {
+    // Если строка содержит признаки double-encoding, исправляем
+    if (/[Ð-ÿ]/.test(obj) && !/[А-Яа-яЁё]/.test(obj)) {
+      return fixDoubleEncoding(obj);
+    }
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => fixEncodingInObject(item));
+  }
+
+  if (obj && typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        result[key] = fixEncodingInObject(
+          (obj as Record<string, unknown>)[key]
+        );
+      }
+    }
+    return result;
+  }
+
+  return obj;
+}
 
 export type FetchStatusResult = {
   data: IRadioStatus | null;
@@ -16,7 +48,9 @@ export type FetchStatusResult = {
 export const fetchStatusJson = async (): Promise<FetchStatusResult> => {
   try {
     const response = await fetchWithRetry(
-      `${API_URL}/status-json.xsl`,
+      environment === "dev"
+        ? `${API_URL}/status-json.xsl`
+        : `${API_URL}/status`,
       {
         method: "GET",
         headers: {
@@ -24,8 +58,8 @@ export const fetchStatusJson = async (): Promise<FetchStatusResult> => {
         },
       },
       {
-        maxRetries: 3,
-        retryDelay: 1000,
+        maxRetries: 1, // Уменьшено до 1 попытки, т.к. запросы статуса выполняются каждые 5 секунд
+        retryDelay: 500, // Уменьшена задержка для более быстрого ответа
         backoffMultiplier: 2,
       }
     );
@@ -51,7 +85,42 @@ export const fetchStatusJson = async (): Promise<FetchStatusResult> => {
     }
 
     try {
-      const data = await response.json();
+      // Получаем данные как ArrayBuffer для правильного декодирования кодировки
+      const arrayBuffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+
+      // Сначала пытаемся декодировать как UTF-8
+      let text = new TextDecoder("utf-8").decode(arrayBuffer);
+
+      // Проверяем на double-encoding (когда UTF-8 читается как Latin-1)
+      // Признаки: символы типа Ð, Ñ, Ð¸ и т.д., но нет нормальной кириллицы
+      if (/[Ð-ÿ]/.test(text) && !/[А-Яа-яЁё]/.test(text)) {
+        const fixed = fixDoubleEncoding(text);
+        // Если исправление дало кириллицу, используем исправленный вариант
+        if (/[А-Яа-яЁё]/.test(fixed)) {
+          text = fixed;
+        }
+      }
+
+      // Проверяем, есть ли признаки неправильной кодировки (кракозябры Windows-1251)
+      // Если в тексте есть символы, которые выглядят как неправильно декодированная кириллица,
+      // пробуем декодировать как Windows-1251
+      const hasInvalidCyrillic =
+        /[Р-Яр-яЁё]/.test(text) && !/[А-Яа-яЁё]/.test(text);
+      const hasCommonCyrillicChars = /[А-Яа-яЁё]/.test(text);
+
+      // Если есть подозрительные символы и нет нормальной кириллицы, пробуем Windows-1251
+      if (hasInvalidCyrillic && !hasCommonCyrillicChars) {
+        text = decodeWindows1251(bytes);
+      }
+
+      // Парсим JSON из правильно декодированного текста
+      let data = JSON.parse(text) as IRadioStatus;
+
+      // Рекурсивно исправляем кодировку во всех строковых значениях JSON
+      // (на случай, если строки внутри JSON содержат double-encoding)
+      data = fixEncodingInObject(data) as IRadioStatus;
+
       return {
         data,
         error: null,

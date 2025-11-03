@@ -6,7 +6,11 @@ type MediaElementRef = React.MutableRefObject<MediaElement>;
 
 export const useVisualizer = (
   mediaElementRef: MediaElementRef
-): [typeof AudioVisualizer, () => void] => {
+): [
+  typeof AudioVisualizer,
+  () => void,
+  React.RefObject<AnalyserNode | null>
+] => {
   const [hasInitialized, setHasInitialized] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioSrcRef = useRef<MediaElementAudioSourceNode | null>(null);
@@ -47,6 +51,9 @@ export const useVisualizer = (
       );
       analyserRef.current = audioContextRef.current.createAnalyser();
       if (audioSrcRef.current && analyserRef.current) {
+        // Снижаем вычислительную нагрузку визуализации
+        analyserRef.current.fftSize = 512; // 256 бинов
+        analyserRef.current.smoothingTimeConstant = 0.8;
         audioSrcRef.current.connect(analyserRef.current);
         audioSrcRef.current.connect(audioContextRef.current.destination);
       }
@@ -60,5 +67,5 @@ export const useVisualizer = (
     hasInitialized,
   ]);
 
-  return [ReactAudioViz, initializer];
+  return [ReactAudioViz, initializer, analyserRef];
 };
