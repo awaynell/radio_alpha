@@ -10,7 +10,7 @@
   width: 100%;
   height: 100%;
 
-  background-color: black;
+  background-color: transparent;
 
   position: relative;
   z-index: 50;
@@ -23,20 +23,58 @@
 .radio-player {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   width: 100%;
   height: 100%;
   padding: 2rem;
+  gap: 2rem;
 
   position: relative;
   z-index: 30;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0.3) 80%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
 
   transition: all 0.35s ease-in-out;
 }
 
+.radio-player.no-dim {
+  background: none;
+}
+
+/* Верхняя секция: Заголовок и информация о треке */
+.player-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 900px;
+  margin-bottom: auto;
+}
+
+.song-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.current-song-placeholder {
+  margin: 0;
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
 .play-toggle {
-  background-color: rgb(4, 4, 82);
+  background-color: rgba(4, 4, 82, 0.15);
   cursor: pointer;
   font-size: 32px;
   text-transform: uppercase;
@@ -45,19 +83,90 @@
   color: white;
 
   transition: opacity 0.35s ease-in-out;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  position: relative;
 }
 
-.play-toggle.playing {
-  background: linear-gradient(90deg, #d90681, rgb(225, 105, 58));
+/* Центральная секция с основными элементами управления */
+.player-main-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  flex: 1;
+  justify-content: center;
 }
 
-.volume-slider {
-  margin-top: 30px;
-  width: 40vw;
+/* Панель настроек с карточками */
+.player-settings-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 800px;
 }
 
-.volume-slider p {
-  font-size: 24px;
+.settings-card {
+  background: rgba(4, 4, 82, 0.1);
+  border: 1px solid rgba(217, 6, 129, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.3s ease-in-out;
+  backdrop-filter: blur(5px);
+  position: relative;
+  z-index: 40; /* выше listeners-container (36) */
+}
+
+.settings-card:hover {
+  border-color: rgba(217, 6, 129, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(217, 6, 129, 0.2);
+}
+
+.settings-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.settings-card-header span {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.settings-card .styled-slider {
+  width: 100%;
+}
+
+.anim-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.anim-control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.switch-label,
+.select-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.anim-select {
+  flex: 1;
+  max-width: 200px;
 }
 
 .player-text {
@@ -90,12 +199,6 @@
   transition: background 0.3s ease-in-out;
 }
 
-@media (max-width: 768px) {
-  .player-title {
-    font-size: 64px;
-  }
-}
-
 .player-title.gradient {
   background: linear-gradient(90deg, #d90681, rgb(225, 105, 58));
 
@@ -106,9 +209,110 @@
   transition: background 0.3s ease-in-out;
 }
 
+.player-title.audio-animated {
+  --audio-scale: 1;
+  --audio-gradient-start: #d90681;
+  --audio-gradient-end: rgb(225, 105, 58);
+  --audio-glow: none;
+  --audio-translate-x: 0px;
+  --audio-translate-y: 0px;
+  --audio-rotate: 0deg;
+
+  /* Убираем фоновый цвет - градиент только на тексте */
+  background-color: transparent !important;
+
+  transform: translate(var(--audio-translate-x), var(--audio-translate-y))
+    rotate(var(--audio-rotate)) scale(var(--audio-scale));
+  transform-origin: center center;
+
+  /* Градиент применяется только к тексту через background-clip */
+  background-image: linear-gradient(
+    90deg,
+    var(--audio-gradient-start),
+    var(--audio-gradient-end)
+  ) !important;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+
+  /* Убираем обводку при анимации для лучшего эффекта */
+  -webkit-text-stroke: 0px;
+  text-stroke: 0px;
+
+  /* Свечение применяется через text-shadow */
+  text-shadow: var(--audio-glow);
+
+  transition: transform 0.05s linear, background-image 0.05s linear;
+  will-change: transform, background-image;
+}
+
 .current-song {
   margin: 0;
-  font-size: 32px;
+  font-size: 28px;
+  text-align: center;
+  padding: 12px 24px;
+  background: rgba(4, 4, 82, 0.4);
+  border-radius: 12px;
+  border: 1px solid rgba(217, 6, 129, 0.3);
+  max-width: 100%;
+  word-wrap: break-word;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+}
+
+.current-song:hover {
+  background: transparent;
+  border-color: rgba(217, 6, 129, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.current-song:active {
+  transform: scale(0.99);
+  opacity: 0.9;
+}
+
+.current-song.pressed {
+  transform: scale(0.97);
+  opacity: 0.95;
+}
+
+.current-song.copied {
+  border-color: rgba(46, 204, 113, 0.7);
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2) inset;
+}
+
+/* Базовые стили для Radix Tooltip (минимально) */
+.tooltip-content {
+  background-color: rgba(4, 4, 82, 0.15);
+  color: #ffffff;
+  font-weight: 700;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(217, 6, 129, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+  opacity: 0;
+  transform: translateY(1px) scale(0.99);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  will-change: opacity, transform;
+  z-index: 1001;
+}
+
+.tooltip-content[data-state="delayed-open"],
+.tooltip-content[data-state="instant-open"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.tooltip-content svg {
+  fill: rgba(4, 4, 82, 0.15);
+  z-index: 1001;
 }
 
 .volume-label {
@@ -117,6 +321,7 @@
 
 .styled-slider {
   -webkit-appearance: none; /* Убирает стандартный стиль для браузеров WebKit */
+  appearance: none;
   width: 100%;
   height: 10px;
   border-radius: 4px;
@@ -124,6 +329,10 @@
   outline: none;
   cursor: pointer;
   transition: background 0.3s ease-in-out;
+}
+
+.styled-slider.neutral {
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 .styled-slider.gradient {
@@ -143,6 +352,10 @@
   transition: background 0.3s ease-in-out;
 }
 
+.styled-slider.neutral::-webkit-slider-thumb {
+  background: #ffffff;
+}
+
 .styled-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
@@ -153,12 +366,24 @@
   transition: all 0.3s ease-in-out;
 }
 
+.styled-slider.neutral::-moz-range-thumb {
+  background: #ffffff;
+}
+
 .styled-slider::-webkit-slider-thumb:hover {
   background: #d90681;
 }
 
+.styled-slider.neutral::-webkit-slider-thumb:hover {
+  background: #e9e9e9;
+}
+
 .styled-slider::-moz-range-thumb:hover {
   background: #d90681;
+}
+
+.styled-slider.neutral::-moz-range-thumb:hover {
+  background: #e9e9e9;
 }
 
 .audio-container {
@@ -168,17 +393,92 @@
 
 .radio-player-controls {
   height: 90px;
-  margin-top: 40px;
-
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  position: relative;
+}
+
+.play-toggle {
+  padding: 16px 32px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  font-weight: 400;
+  letter-spacing: 1px;
+  min-width: 200px;
+  background-color: rgba(4, 4, 82, 0.15);
+  position: relative;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.play-toggle.playing {
+  border-color: rgba(217, 6, 129, 0.5);
+  box-shadow: 0 4px 20px rgba(217, 6, 129, 0.3);
+}
+
+.play-toggle.playing::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #d90681, rgb(225, 105, 58));
+  border-radius: 10px;
+  opacity: 0.3;
+  z-index: -1;
+}
+
+.play-toggle:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(217, 6, 129, 0.4);
+}
+
+.play-toggle:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 @media (max-width: 768px) {
-  .radio-player-controls {
-    margin-top: 20px;
+  .player-header {
+    gap: 1rem;
+  }
+
+  .player-title {
+    font-size: 64px;
+  }
+
+  .current-song {
+    font-size: 20px;
+    padding: 10px 16px;
+  }
+
+  .player-main-controls {
+    gap: 1.5rem;
+  }
+
+  .player-settings-panel {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .settings-card {
+    padding: 1rem;
+  }
+
+  .footer-actions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .listeners-container {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 }
 
@@ -188,22 +488,44 @@
   left: 0px;
   width: 100vw;
   height: 100vh;
-  z-index: 5;
+  z-index: 1;
 
   transition: all 0.3s ease-in-out;
 }
 
 .listeners-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 5px;
-  margin-top: 30px;
+  gap: 1.5rem;
+  padding: 12px 20px;
+  background: rgba(4, 4, 82, 0.15);
+  border-radius: 12px;
+  border: 1px solid rgba(217, 6, 129, 0.2);
+  position: relative;
+  z-index: 36;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  /* Ограничиваем область размытия границами блока */
+  contain: layout style paint;
 }
 
-.listener-container {
+.listener-item {
   display: flex;
-  gap: 5px;
+  align-items: center;
+  gap: 8px;
+}
+
+.listener-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.listeners {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fc9191;
 }
 
 .hidden {
@@ -229,49 +551,331 @@
   transition: all 0.3s ease-in-out;
 }
 
+.button-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-toggle.loading {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .anim-select {
-  background-color: black;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  padding-right: 28px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  min-width: 200px;
+}
+
+.anim-select:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.anim-select:focus {
+  border-color: rgba(255, 255, 255, 0.45);
+  background-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
 }
 
 .anim-select option {
-  background-color: black;
+  background-color: #1e2230;
+  color: #fff;
+  padding: 10px;
+  font-size: 16px;
+}
+
+.anim-select option:hover,
+.anim-select option:checked {
+  background-color: #2a2f42;
+  color: #fff;
+}
+
+/* Кастомный dropdown */
+.anim-dropdown {
+  position: relative;
+  flex: 1;
+  max-width: 240px;
+  z-index: 1000002; /* обеспечить поверх всего локально */
+}
+
+.anim-selectBtn {
+  width: 100%;
+  text-align: left;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.anim-selectBtn:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.anim-selectBtn:focus {
+  border-color: rgba(255, 255, 255, 0.45);
+  background-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+
+.anim-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background-color: rgba(21, 24, 35, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 1000002; /* выше helpQuestionBtn (1000001) */
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  max-height: 120px;
+}
+
+/* Увеличенная высота для списка выбора палитры */
+.anim-menu.palette {
+  max-height: 240px;
+}
+
+.anim-menu.scrollable {
+  /* 3 видимых элемента + внутренние отступы контейнера 6px сверху/снизу */
+  --anim-item-height: 44px;
+  max-height: 120px;
+}
+
+/* WebKit-скроллбар (Chrome/Edge/Safari) */
+.anim-menu::-webkit-scrollbar {
+  width: 10px;
+}
+
+.anim-menu::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 6px; /* чтобы трек не упирался в радиусы */
+}
+
+.anim-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  border: 2px solid rgba(21, 24, 35, 0.98); /* чтобы сохранялся зазор от края */
+}
+
+.anim-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.anim-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.anim-item:hover,
+.anim-item.highlighted {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.anim-item.selected {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
 }
 
 .vote-block {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 0.5rem;
 }
 
 .vote-btn {
-  padding: 10px;
-  background-color: rgba(255, 255, 255, 0.389);
+  padding: 10px 20px;
+  background-color: rgba(255, 255, 255, 0.15);
   color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.25s ease-in-out;
+  min-width: 80px;
 }
 
-.vote-btn:hover {
-  transition: all 0.25s;
-  transform: scale(1.2);
-  background-color: rgba(255, 255, 255, 0.153);
+.vote-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.05);
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(217, 6, 129, 0.6);
+  box-shadow: 0 4px 12px rgba(217, 6, 129, 0.3);
 }
 
-.anim-controls {
+.vote-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vote-btn.like-btn:active:not(:disabled) {
+  background-color: rgba(217, 6, 129, 0.4);
+}
+
+.vote-btn.dislike-btn:active:not(:disabled) {
+  background-color: rgba(225, 105, 58, 0.4);
+}
+
+/* Нижняя секция */
+.player-footer {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 1rem;
+  width: 100%;
+  max-width: 900px;
+  margin-top: auto;
+  position: relative;
+  z-index: 35;
+}
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.error-message {
+  width: 100%;
+  text-align: center;
 }
 
 .topSongsButton {
-  background-color: black;
-  transition: all 0.25s;
-  padding: 10px;
-  margin-top: 10px;
-  border: 1px solid transparent;
+  background-color: rgba(4, 4, 82, 0.15);
+  transition: all 0.25s ease-in-out;
+  padding: 12px 24px;
+  border: 1px solid rgba(217, 6, 129, 0.2);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.783);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .topSongsButton:hover {
-  background-color: hsla(0, 0%, 100%, 0.755);
-  border: 1px solid white;
-  transform: scale(1.1);
-  color: black;
+  background-color: rgba(217, 6, 129, 0.2);
+  border-color: rgba(217, 6, 129, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(217, 6, 129, 0.4);
+}
+
+.player-error {
+  color: #ff4444;
+  font-size: 18px;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.api-status-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.retry-button {
+  padding: 8px 16px;
+  background-color: rgba(217, 6, 129, 0.8);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.25s ease-in-out;
+}
+
+.retry-button:hover:not(:disabled) {
+  background-color: rgba(217, 6, 129, 1);
+  transform: scale(1.05);
+}
+
+.retry-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Кнопка справки со знаком вопроса */
+.helpQuestionBtn {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(217, 6, 129, 0.2);
+  background-color: rgba(4, 4, 82, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.6;
+  z-index: 1000001;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.2s ease, transform 0.15s ease, background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.helpQuestionBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  background: rgba(217, 6, 129, 0.2);
+  border-color: rgba(217, 6, 129, 0.5);
+  box-shadow: 0 6px 24px rgba(217, 6, 129, 0.4);
+}
+
+.helpQuestionBtn:active {
+  transform: translateY(0);
 }

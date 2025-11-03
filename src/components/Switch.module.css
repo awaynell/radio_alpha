@@ -1,7 +1,7 @@
 .switchCheck {
   --size: 25px;
   position: relative;
-  background: linear-gradient(90deg, #f19af3, #f099b5);
+  background: linear-gradient(90deg, #d90681, #E1693A);
   line-height: 0;
   perspective: 400px;
   font-size: var(--size);
@@ -24,7 +24,7 @@
 .switchCheck label {
   width: calc(2.2 * var(--size));
   height: var(--size);
-  background: #443030;
+  background: rgb(4, 4, 82);
   overflow: hidden;
 }
 
@@ -35,10 +35,15 @@
   height: calc(0.8 * var(--size));
   top: calc(0.1 * var(--size));
   left: calc(0.1 * var(--size));
-  background: linear-gradient(45deg, #dedede, #ffffff);
+  background: #E1693A;
   box-shadow: 0 6px 7px rgba(0, 0, 0, 0.3);
   outline: none;
   margin: 0;
+}
+
+/* hover/active как у слайдера */
+.switchCheck input[type="checkbox"]:hover {
+  background: #d90681;
 }
 
 .switchCheck input[type="checkbox"]:checked {
@@ -58,13 +63,15 @@
   top: calc(0.5 * var(--size));
   height: var(--size);
   letter-spacing: calc(-0.04 * var(--size));
-  color: #9b9b9b;
+  color: #ffffff; /* контрастные глаза по умолчанию */
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(0, 0, 0, 0.3);
   font-family: "Times New Roman", serif;
   z-index: 2;
   font-size: calc(0.6 * var(--size));
   border-radius: 0;
   transform-origin: 0 0 calc(-0.5 * var(--size));
   backface-visibility: hidden;
+  opacity: 0; /* скрыто по умолчанию */
 }
 
 .switchCheck label::after {
@@ -73,7 +80,9 @@
   left: calc(0.2 * var(--size));
   height: calc(0.1 * var(--size));
   width: calc(0.35 * var(--size));
-  font-size: calc(0.2 * var(--size));
+  font-size: calc(0.22 * var(--size));
+  color: #ffe5f2; /* мягкий розовый рот для лучшей читаемости */
+  text-shadow: 0 0 3px #d90681, 0 0 6px rgba(225, 105, 58, 0.8);
   transform-origin: 0 0 calc(-0.4 * var(--size));
 }
 
@@ -82,7 +91,10 @@
   left: calc(1.55 * var(--size));
   top: calc(0.4 * var(--size));
   line-height: calc(0.1 * var(--size));
-  transform: rotateY(360deg);
+  transform: rotateY(360deg) scale(1.02);
+  color: #ffffff;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5), 0 0 6px rgba(217, 6, 129, 0.6);
+  opacity: 1; /* показываем мордашку только во включенном состоянии */
 }
 
 .switchCheck input[type="checkbox"]:checked + label::after {
@@ -91,4 +103,18 @@
   left: calc(1.6 * var(--size));
   font-size: calc(0.6 * var(--size));
   line-height: 0;
+  color: #ffe5f2;
+  text-shadow: 0 0 3px #d90681, 0 0 8px rgba(224, 58, 96, 0.8);
+}
+
+/* a11y: фокус */
+.switchCheck input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(217, 6, 129, 0.6);
+}
+
+/* disabled */
+.switchCheck input[type="checkbox"]:disabled,
+.switchCheck input[type="checkbox"]:disabled + label {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
