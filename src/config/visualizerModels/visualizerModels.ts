@@ -1,6 +1,5 @@
 import { parseCSSColor } from "@utils/parseCSSColor";
 import { DEFAULT_OPTIONS, interpolateColor } from "./DEFAULT";
-import { radialPetals } from "./radialPetals";
 
 export type VisualizationModelOptions = {
   darkMode?: boolean;
@@ -219,51 +218,3 @@ export const polar = (options: VisualizationModelOptions = {}) => {
   };
 };
 
-// 4. Adaptive colors (усиленная чувствительность по всему спектру)
-export const adaptiveColors = (options: VisualizationModelOptions = {}) => {
-  const { parsedColors } = baseVisualizer(options);
-  const gamma = Math.max(0.3, options.gamma ?? 1.7);
-  const percentile = Math.min(0.99, Math.max(0.5, options.percentile ?? 0.75));
-
-  const getGradientByFactor = (factor01: number) => {
-    const colorCount = parsedColors.length;
-    if (colorCount === 1) return parsedColors[0];
-    const offset = factor01 * (colorCount - 1);
-    const index1 = Math.floor(offset) % colorCount;
-    const index2 = (index1 + 1) % colorCount;
-    const factor = offset - Math.floor(offset);
-    return interpolateColor(parsedColors[index1], parsedColors[index2], factor);
-  };
-
-  return (
-    x: number,
-    _y: number,
-    width: number,
-    _height: number,
-    frequencyData: Uint8Array
-  ) => {
-    const len = Math.max(1, frequencyData.length);
-    // Выбираем частотный бин относительно позиции x (для warpGrid: x=i, width=layers)
-    const binIndex = Math.min(
-      len - 1,
-      Math.max(0, Math.floor((x / Math.max(1, width)) * len))
-    );
-    const binAmp = frequencyData[binIndex] / 255; // 0..1
-
-    // Адаптивная чувствительность по спектру
-    const norm = new Array<number>(len);
-    for (let i = 0; i < len; i++) norm[i] = frequencyData[i] / 255;
-    const sorted = norm.slice().sort((a, b) => a - b);
-    const pIndex = Math.min(
-      sorted.length - 1,
-      Math.max(0, Math.floor(percentile * sorted.length))
-    );
-    const pRef = Math.max(0.05, sorted[pIndex]);
-    const colorSensitivity = 2.0;
-    const normalized = Math.min(1, (binAmp / pRef) * colorSensitivity);
-    const nonlinear = Math.min(1, Math.pow(Math.max(0, normalized), gamma));
-    return getGradientByFactor(nonlinear);
-  };
-};
-
-export { radialPetals };

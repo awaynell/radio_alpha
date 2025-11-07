@@ -25,13 +25,12 @@ import PlainSwitch from "./PlainSwitch";
 import {
   energyBars,
   spectrumWaves,
-  adaptiveColors,
+  radialPetals,
 } from "@config/visualizerModels/visualizerModels";
 import { DEFAULT_OPTIONS } from "@config/visualizerModels/DEFAULT";
 import { useTrackVotes } from "@hooks/useTrackVotes";
 import { TopSongsModal } from "./TopSongsModal";
 import { HotkeysModal } from "./HotkeysModal";
-import SettingsModal from "./SettingsModal";
 
 const Player = () => {
   // Загрузка значений из localStorage при инициализации
@@ -65,7 +64,7 @@ const Player = () => {
     | "dominantFrequency"
     | "energyBars"
     | "spectrumWaves"
-    | "warpGrid" => {
+    | "radialPetals" => {
     const stored = localStorage.getItem("radio-alpha-anim-model");
     if (
       stored &&
@@ -74,7 +73,7 @@ const Player = () => {
         "dominantFrequency",
         "energyBars",
         "spectrumWaves",
-        "warpGrid",
+        "radialPetals",
       ].includes(stored)
     ) {
       return stored as
@@ -82,7 +81,7 @@ const Player = () => {
         | "dominantFrequency"
         | "energyBars"
         | "spectrumWaves"
-        | "warpGrid";
+        | "radialPetals";
     }
     return "polar"; // значение по умолчанию
   };
@@ -100,7 +99,11 @@ const Player = () => {
   const [maxListenersCount, setMaxListenersCount] = useState(0);
   const [isLive, setIsLive] = useState(false);
   const [currentAnimModel, setCurrentAnimModel] = useState<
-    "polar" | "dominantFrequency" | "energyBars" | "spectrumWaves" | "warpGrid"
+    | "polar"
+    | "dominantFrequency"
+    | "energyBars"
+    | "spectrumWaves"
+    | "radialPetals"
   >(getStoredAnimModel);
   const [apiStatusError, setApiStatusError] = useState<string | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
@@ -110,13 +113,13 @@ const Player = () => {
 
   // Кастомный dropdown для выбора типа визуализации
   const animOptions: Array<{
-    value: "polar" | "energyBars" | "spectrumWaves" | "warpGrid";
+    value: "polar" | "energyBars" | "spectrumWaves" | "radialPetals";
     label: string;
   }> = [
     { value: "polar", label: "Полярная" },
     { value: "energyBars", label: "Энергетические бары" },
     { value: "spectrumWaves", label: "Спектральные волны" },
-    { value: "warpGrid", label: "Космическая матрица" },
+    { value: "radialPetals", label: "Лепестки" },
   ];
   const [isAnimMenuOpen, setIsAnimMenuOpen] = useState(false);
   const [highlightedAnimIndex, setHighlightedAnimIndex] = useState<number>(
@@ -184,29 +187,9 @@ const Player = () => {
   const [hidden, setHidden] = useState(false);
   const [isTopSongsModalOpen, setIsTopSongsModalOpen] = useState(false);
   const [isHotkeysOpen, setIsHotkeysOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAudioVizVisible, setIsAudioVizVisible] = useState(
     getStoredAudioVizVisible
   );
-
-  // Функции для открытия модалок с закрытием остальных
-  const openTopSongsModal = useCallback(() => {
-    setIsHotkeysOpen(false);
-    setIsSettingsOpen(false);
-    setIsTopSongsModalOpen(true);
-  }, []);
-
-  const openHotkeysModal = useCallback(() => {
-    setIsTopSongsModalOpen(false);
-    setIsSettingsOpen(false);
-    setIsHotkeysOpen(true);
-  }, []);
-
-  const openSettingsModal = useCallback(() => {
-    setIsTopSongsModalOpen(false);
-    setIsHotkeysOpen(false);
-    setIsSettingsOpen(true);
-  }, []);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
@@ -528,11 +511,7 @@ const Player = () => {
           break;
 
         case "KeyT": // T - Открыть топ треков
-          if (isTopSongsModalOpen) {
-            setIsTopSongsModalOpen(false);
-          } else {
-            openTopSongsModal();
-          }
+          setIsTopSongsModalOpen((prev) => !prev);
           break;
       }
     };
@@ -542,18 +521,14 @@ const Player = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isLoading, isLive, togglePlay, isTopSongsModalOpen, openTopSongsModal]);
+  }, [isLoading, isLive, togglePlay]);
 
   return (
     <div
       className={"radio-player-container"}
       onMouseEnter={() => setHidden(false)}
     >
-      <div
-        className={clsx("radio-player", {
-          "opacity-0 -zindex-1": hidden,
-        })}
-      >
+      <div className={clsx("radio-player", { "opacity-0 -zindex-1": hidden })}>
         {/* Верхняя секция: Заголовок и информация о треке */}
         <div className="player-header">
           <h1
@@ -883,7 +858,10 @@ const Player = () => {
           )}
 
           <div className="footer-actions">
-            <button className="topSongsButton" onClick={openTopSongsModal}>
+            <button
+              className="topSongsButton"
+              onClick={() => setIsTopSongsModalOpen(true)}
+            >
               Топ треков
             </button>
 
@@ -931,30 +909,22 @@ const Player = () => {
           }}
         >
           <AudioVisualizer
-            model={(() => {
-              const storedColors = localStorage.getItem(
-                "radio-alpha-viz-colors"
-              );
-              const colors = storedColors
-                ? (JSON.parse(storedColors) as string[])
-                : DEFAULT_OPTIONS.colors;
-              const gamma = parseFloat(
-                localStorage.getItem("radio-alpha-viz-gamma") || "1.7"
-              );
-              const percentile = parseFloat(
-                localStorage.getItem("radio-alpha-viz-percentile") || "0.75"
-              );
-              if (currentAnimModel === "polar") {
-                return polar({ colors, scale: 2, gamma, percentile });
-              }
-              if (currentAnimModel === "energyBars") {
-                return energyBars({ colors, gamma, percentile });
-              }
-              if (currentAnimModel === "warpGrid") {
-                return adaptiveColors({ colors, gamma, percentile });
-              }
-              return spectrumWaves({ colors, speed: 0.8, gamma, percentile });
-            })()}
+            model={
+              currentAnimModel === "polar"
+                ? polar({
+                    darkMode: true,
+                    scale: 2,
+                    colors: DEFAULT_OPTIONS.colors,
+                  })
+                : currentAnimModel === "energyBars"
+                ? energyBars({ colors: DEFAULT_OPTIONS.colors })
+                : currentAnimModel === "radialPetals"
+                ? radialPetals({
+                    colors: DEFAULT_OPTIONS.colors,
+                    colorSensitivity: 1.7,
+                  })
+                : spectrumWaves({ colors: DEFAULT_OPTIONS.colors, speed: 0.8 })
+            }
             modelType={currentAnimModel}
           />
         </div>
@@ -968,46 +938,17 @@ const Player = () => {
         />
       </div>
 
-      <div
-        style={{
-          position: "fixed",
-          top: 24,
-          right: 24,
-          zIndex: 1000001,
-          display: "flex",
-          gap: 10,
-        }}
+      <button
+        className={clsx("helpQuestionBtn", { "opacity-0 -zindex-1": hidden })}
+        aria-label="Справка по горячим клавишам"
+        onClick={() => setIsHotkeysOpen(true)}
       >
-        <button
-          className={clsx("helpQuestionBtn", {
-            "opacity-0 -zindex-1": hidden,
-          })}
-          aria-label="Справка по горячим клавишам"
-          onClick={openHotkeysModal}
-          style={{ position: "relative", right: 0, marginLeft: 8 }}
-        >
-          ?
-        </button>
-        <button
-          className={clsx("helpQuestionBtn", {
-            "opacity-0 -zindex-1": hidden,
-          })}
-          aria-label="Настройки визуализации"
-          onClick={openSettingsModal}
-          style={{ position: "relative", right: 0, marginLeft: 8 }}
-        >
-          ⚙
-        </button>
-      </div>
+        ?
+      </button>
 
       <HotkeysModal
         isOpen={isHotkeysOpen}
         onClose={() => setIsHotkeysOpen(false)}
-      />
-
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
       />
     </div>
   );

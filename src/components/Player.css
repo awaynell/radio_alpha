@@ -43,10 +43,6 @@
   transition: all 0.35s ease-in-out;
 }
 
-.radio-player.no-dim {
-  background: none;
-}
-
 /* Верхняя секция: Заголовок и информация о треке */
 .player-header {
   display: flex;
@@ -284,44 +280,12 @@
   box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2) inset;
 }
 
-/* Базовые стили для Radix Tooltip (минимально) */
-.tooltip-content {
-  background-color: rgba(4, 4, 82, 0.15);
-  color: #ffffff;
-  font-weight: 700;
-  padding: 8px 12px;
-  font-size: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(217, 6, 129, 0.2);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
-  opacity: 0;
-  transform: translateY(1px) scale(0.99);
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  will-change: opacity, transform;
-  z-index: 1001;
-}
-
-.tooltip-content[data-state="delayed-open"],
-.tooltip-content[data-state="instant-open"] {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-
-.tooltip-content svg {
-  fill: rgba(4, 4, 82, 0.15);
-  z-index: 1001;
-}
-
 .volume-label {
   font-size: 24px;
 }
 
 .styled-slider {
   -webkit-appearance: none; /* Убирает стандартный стиль для браузеров WebKit */
-  appearance: none;
   width: 100%;
   height: 10px;
   border-radius: 4px;
@@ -329,10 +293,6 @@
   outline: none;
   cursor: pointer;
   transition: background 0.3s ease-in-out;
-}
-
-.styled-slider.neutral {
-  background-color: rgba(255, 255, 255, 0.12);
 }
 
 .styled-slider.gradient {
@@ -352,10 +312,6 @@
   transition: background 0.3s ease-in-out;
 }
 
-.styled-slider.neutral::-webkit-slider-thumb {
-  background: #ffffff;
-}
-
 .styled-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
@@ -366,24 +322,12 @@
   transition: all 0.3s ease-in-out;
 }
 
-.styled-slider.neutral::-moz-range-thumb {
-  background: #ffffff;
-}
-
 .styled-slider::-webkit-slider-thumb:hover {
   background: #d90681;
 }
 
-.styled-slider.neutral::-webkit-slider-thumb:hover {
-  background: #e9e9e9;
-}
-
 .styled-slider::-moz-range-thumb:hover {
   background: #d90681;
-}
-
-.styled-slider.neutral::-moz-range-thumb:hover {
-  background: #e9e9e9;
 }
 
 .audio-container {
@@ -657,45 +601,10 @@
   list-style: none;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   z-index: 1000002; /* выше helpQuestionBtn (1000001) */
+  max-height: 220px;
   overflow: auto;
-  overscroll-behavior: contain;
-  /* Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  max-height: 120px;
-}
-
-/* Увеличенная высота для списка выбора палитры */
-.anim-menu.palette {
-  max-height: 240px;
-}
-
-.anim-menu.scrollable {
-  /* 3 видимых элемента + внутренние отступы контейнера 6px сверху/снизу */
-  --anim-item-height: 44px;
-  max-height: 120px;
-}
-
-/* WebKit-скроллбар (Chrome/Edge/Safari) */
-.anim-menu::-webkit-scrollbar {
-  width: 10px;
-}
-
-.anim-menu::-webkit-scrollbar-track {
-  background: transparent;
-  margin: 6px; /* чтобы трек не упирался в радиусы */
-}
-
-.anim-menu::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 8px;
-  border: 2px solid rgba(21, 24, 35, 0.98); /* чтобы сохранялся зазор от края */
-}
-
-.anim-menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.28);
 }
 
 .anim-item {
@@ -845,8 +754,8 @@
   position: fixed;
   top: 24px;
   right: 24px;
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   border: 1px solid rgba(217, 6, 129, 0.2);
   background-color: rgba(4, 4, 82, 0.15);
